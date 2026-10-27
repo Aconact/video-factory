@@ -1,0 +1,65 @@
+name: render
+
+on:
+  push:
+    paths:
+      - "jobs/**"
+      - ".github/workflows/render.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: render
+  cancel-in-progress: false
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Read job settings
+        id: cfg
+        run: |
+          read -r JOB PCT SAMPLES FSTART FEND < jobs/ACTIVE
+          echo "job=$JOB" >> "$GITHUB_OUTPUT"
+          echo "pct=$PCT" >> "$GITHUB_OUTPUT"
+          echo "samples=$SAMPLES" >> "$GITHUB_OUTPUT"
+          echo "fstart=$FSTART" >> "$GITHUB_OUTPUT"
+          echo "fend=$FEND" >> "$GITHUB_OUTPUT"
+
+      - name: Install Blender and FFmpeg
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends blender ffmpeg
+          blender --version | head -n 1
+
+      - name: Render with Blender
+        env:
+          OUT_DIR: out/frames
+          RES_PERCENT: ${{ steps.cfg.outputs.pct }}
+          SAMPLES: ${{ steps.cfg.outputs.samples }}
+          FRAME_START: ${{ steps.cfg.outputs.fstart }}
+          FRAME_END: ${{ steps.cfg.outputs.fend }}
+        run: |
+          set -o pipefail
+          mkdir -p out/frames
+          blender -b -noaudio --python-exit-code 1 -P "jobs/${{ steps.cfg.outputs.job }}/scene.py" 2>&1 | tee out/blender.log | tail -n 60
+          ls -la out/frames | head -n 20
+
+      - name: Encode video
+        if: steps.cfg.outputs.fstart != steps.cfg.outputs.fend
+        run: |
+          ffmpeg -y -loglevel error -framerate 30 -start_number ${{ steps.cfg.outputs.fstart }} -i out/frames/frame_%04d.png -c:v libx264 -preset veryfast -crf 18 -pix_fmt yuv420p -movflags +faststart out/${{ steps.cfg.outputs.job }}.mp4
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="render-${{ github.run_number }}-${{ steps.cfg.outputs.job }}"
+          FILES=$(ls out/*.mp4 out/frames/frame_*.png 2>/dev/null | head -n 12)
+          gh release create "$TAG" $FILES out/blender.log --title "$TAG" --notes "Render of ${{ steps.cfg.outputs.job }} from commit ${{ github.sha }}"
