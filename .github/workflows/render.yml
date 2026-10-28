@@ -32,11 +32,20 @@ jobs:
           echo "fstart=$FSTART" >> "$GITHUB_OUTPUT"
           echo "fend=$FEND" >> "$GITHUB_OUTPUT"
 
-      - name: Install Blender and FFmpeg
+      - name: Install Blender 4.2 LTS (official build) and FFmpeg
         run: |
           sudo apt-get update -y
+          # The Ubuntu package pulls in every shared library Blender needs.
+          # Its own build has no denoiser, so the official build is used instead.
           sudo apt-get install -y --no-install-recommends blender ffmpeg
-          blender --version | head -n 1
+          BASE=https://download.blender.org/release/Blender4.2/
+          FILE=$(curl -fsSL "$BASE" | grep -o 'blender-4\.2\.[0-9]*-linux-x64\.tar\.xz' | sort -V | uniq | tail -n 1)
+          echo "downloading $FILE"
+          curl -fsSL -o /tmp/blender.tar.xz "$BASE$FILE"
+          mkdir -p "$HOME/blender"
+          tar -xf /tmp/blender.tar.xz -C "$HOME/blender" --strip-components=1
+          echo "$HOME/blender" >> "$GITHUB_PATH"
+          "$HOME/blender/blender" --version | head -n 1
 
       - name: Render with Blender
         env:

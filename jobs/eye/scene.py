@@ -229,11 +229,15 @@ scene.render.engine = "CYCLES"
 cy = scene.cycles
 cy.device = "CPU"
 cy.samples = SAMPLES
-cy.use_denoising = True
+denoise_ok = True
 try:
     cy.denoiser = "OPENIMAGEDENOISE"
 except Exception as exc:  # noqa: BLE001
-    print("denoiser note:", exc)
+    denoise_ok = False
+    print("denoiser unavailable in this Blender build:", exc)
+cy.use_denoising = denoise_ok
+if not denoise_ok:
+    cy.samples = max(SAMPLES * 4, 96)
 cy.max_bounces = 8
 cy.glossy_bounces = 6
 cy.transmission_bounces = 8
