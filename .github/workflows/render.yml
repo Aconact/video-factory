@@ -3,9 +3,10 @@ name: render
 on:
   push:
     paths:
-      - "jobs/**"
+      - "jobs/ACTIVE"
+      - "jobs/*/scene.py"
       - ".github/workflows/render.yml"
-      - ".github/scripts/**"
+      - ".github/scripts/plan.py"
   workflow_dispatch:
 
 permissions:
