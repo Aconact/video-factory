@@ -1,0 +1,45 @@
+{
+  "id": "free-plans",
+  "title": "What you really get for free: ChatGPT vs Claude vs Gemini (Oct 2026)",
+  "voice": "af_heart",
+  "speed": 1.0,
+  "lead": 0.12,
+  "tail": 0.32,
+  "scenes": [
+    {
+      "id": "hook",
+      "text": "Which free AI gives you the most? We checked the official pages.",
+      "say": "Which free A I gives you the most? We checked the official pages."
+    },
+    {
+      "id": "models",
+      "text": "ChatGPT's free plan runs GPT-6 Luna. Claude gives you Sonnet and Haiku. Gemini gives you Flash-Lite, with Auto mode stepping up for hard prompts. Its flagship, Argon, is paid only.",
+      "say": "Chat G P T's free plan runs G P T six Luna. Claude gives you Sonnet and Haiku. Gemini gives you Flash Lite, with Auto mode stepping up for hard prompts. Its flagship, Argon, is paid only."
+    },
+    {
+      "id": "limits",
+      "text": "The big difference is limits. ChatGPT now offers unlimited text chats, though files, images and voice stay capped. Claude and Gemini both reset every five hours, and Gemini adds a weekly cap.",
+      "say": "The big difference is limits. Chat G P T now offers unlimited text chats, though files, images and voice stay capped. Claude and Gemini both reset every five hours, and Gemini adds a weekly cap."
+    },
+    {
+      "id": "features",
+      "text": "ChatGPT's free plan includes voice, a Think button and scheduled tasks. Claude includes Artifacts, Projects and memory. Gemini includes Deep Research and image generation.",
+      "say": "Chat G P T's free plan includes voice, a Think button and scheduled tasks. Claude includes Artifacts, Projects and memory. Gemini includes Deep Research and image generation."
+    },
+    {
+      "id": "catch",
+      "text": "One catch: ChatGPT is rolling out ads on its free tier in some countries.",
+      "say": "One catch: Chat G P T is rolling out ads on its free tier in some countries."
+    },
+    {
+      "id": "verdict",
+      "text": "So, chatting all day? ChatGPT. Building things? Claude. Research and images? Gemini.",
+      "say": "So, chatting all day? Chat G P T. Building things? Claude. Research and images? Gemini."
+    },
+    {
+      "id": "cta",
+      "text": "Follow TechPulse Report for the facts behind AI news.",
+      "say": "Follow Tech Pulse Report for the facts behind A I news."
+    }
+  ]
+}

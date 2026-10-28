@@ -1,0 +1,74 @@
+name: voice
+
+on:
+  push:
+    paths:
+      - "videos/ACTIVE"
+      - "videos/*/script.json"
+      - ".github/workflows/tts.yml"
+      - ".github/scripts/tts.py"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: voice
+  cancel-in-progress: false
+
+jobs:
+  voice:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Kokoro and faster-whisper
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends espeak-ng ffmpeg
+          pip install --quiet kokoro-onnx soundfile numpy faster-whisper
+
+      - name: Download Kokoro model files
+        run: |
+          BASE=https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0
+          curl -fsSL -o kokoro-v1.0.onnx "$BASE/kokoro-v1.0.onnx"
+          curl -fsSL -o voices-v1.0.bin "$BASE/voices-v1.0.bin"
+          ls -la kokoro-v1.0.onnx voices-v1.0.bin
+
+      - name: Make the voice-over
+        run: |
+          set -o pipefail
+          VIDEO=$(tr -d '[:space:]' < videos/ACTIVE)
+          echo "video: $VIDEO"
+          mkdir -p out
+          python .github/scripts/tts.py "videos/$VIDEO/script.json" out 2>&1 | tee out/tts.log
+          ls -la out
+
+      - name: Publish release
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          mkdir -p out
+          VIDEO=$(tr -d '[:space:]' < videos/ACTIVE)
+          TAG="voice-${{ github.run_number }}-$VIDEO"
+          FILES=""
+          for f in out/voice.wav out/timeline.json out/tts.log; do
+            if [ -s "$f" ]; then FILES="$FILES $f"; fi
+          done
+          {
+            echo "Voice-over for $VIDEO from commit ${{ github.sha }}"
+            echo
+            echo '```'
+            tail -n 30 out/tts.log 2>/dev/null || echo "no log"
+            echo '```'
+          } > out/notes.md
+          gh release create "$TAG" $FILES --target "${{ github.sha }}" --title "$TAG" --notes-file out/notes.md
