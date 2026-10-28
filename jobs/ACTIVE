@@ -1,8 +1,7 @@
 # Read by .github/scripts/plan.py. Editing and pushing this file starts a render.
 job=eye
-pct=60
-samples=32
+pct=100
+samples=36
 fstart=1
 fend=90
-frames=1,45,90
-shards=1
+shards=18
