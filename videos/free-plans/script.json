@@ -2,9 +2,9 @@
   "id": "free-plans",
   "title": "What you really get for free: ChatGPT vs Claude vs Gemini (Oct 2026)",
   "voice": "af_heart",
-  "speed": 1.0,
-  "lead": 0.12,
-  "tail": 0.32,
+  "speed": 1.08,
+  "lead": 0.1,
+  "tail": 0.26,
   "scenes": [
     {
       "id": "hook",
