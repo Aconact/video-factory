@@ -57,9 +57,19 @@ jobs:
           ffmpeg -y -loglevel error -framerate 30 -start_number ${{ steps.cfg.outputs.fstart }} -i out/frames/frame_%04d.png -c:v libx264 -preset veryfast -crf 18 -pix_fmt yuv420p -movflags +faststart out/${{ steps.cfg.outputs.job }}.mp4
 
       - name: Publish release
+        if: always()
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          mkdir -p out
           TAG="render-${{ github.run_number }}-${{ steps.cfg.outputs.job }}"
           FILES=$(ls out/*.mp4 out/frames/frame_*.png 2>/dev/null | head -n 12)
-          gh release create "$TAG" $FILES out/blender.log --title "$TAG" --notes "Render of ${{ steps.cfg.outputs.job }} from commit ${{ github.sha }}"
+          if [ -f out/blender.log ]; then FILES="$FILES out/blender.log"; fi
+          {
+            echo "Render of ${{ steps.cfg.outputs.job }} from commit ${{ github.sha }}"
+            echo
+            echo '```'
+            tail -n 60 out/blender.log 2>/dev/null || echo "no blender log"
+            echo '```'
+          } > out/notes.md
+          gh release create "$TAG" $FILES --title "$TAG" --notes-file out/notes.md
