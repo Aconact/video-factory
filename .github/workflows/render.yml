@@ -5,6 +5,7 @@ on:
     paths:
       - "jobs/**"
       - ".github/workflows/render.yml"
+      - ".github/scripts/**"
   workflow_dispatch:
 
 permissions:
@@ -15,29 +16,42 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  render:
+  plan:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    outputs:
+      job: ${{ steps.plan.outputs.job }}
+      pct: ${{ steps.plan.outputs.pct }}
+      samples: ${{ steps.plan.outputs.samples }}
+      fstart: ${{ steps.plan.outputs.fstart }}
+      fend: ${{ steps.plan.outputs.fend }}
+      encode: ${{ steps.plan.outputs.encode }}
+      matrix: ${{ steps.plan.outputs.matrix }}
     steps:
       - name: Check out
         uses: actions/checkout@v4
 
-      - name: Read job settings
-        id: cfg
-        run: |
-          read -r JOB PCT SAMPLES FSTART FEND < jobs/ACTIVE
-          echo "job=$JOB" >> "$GITHUB_OUTPUT"
-          echo "pct=$PCT" >> "$GITHUB_OUTPUT"
-          echo "samples=$SAMPLES" >> "$GITHUB_OUTPUT"
-          echo "fstart=$FSTART" >> "$GITHUB_OUTPUT"
-          echo "fend=$FEND" >> "$GITHUB_OUTPUT"
+      - name: Read jobs/ACTIVE
+        id: plan
+        run: python3 .github/scripts/plan.py | tee -a "$GITHUB_OUTPUT"
 
-      - name: Install Blender 4.2 LTS (official build) and FFmpeg
+  render:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 80
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Install Blender 4.2 LTS (official build)
         run: |
           sudo apt-get update -y
           # The Ubuntu package pulls in every shared library Blender needs.
           # Its own build has no denoiser, so the official build is used instead.
-          sudo apt-get install -y --no-install-recommends blender ffmpeg
+          sudo apt-get install -y --no-install-recommends blender
           BASE=https://download.blender.org/release/Blender4.2/
           FILE=$(curl -fsSL "$BASE" | grep -o 'blender-4\.2\.[0-9]*-linux-x64\.tar\.xz' | sort -V | uniq | tail -n 1)
           echo "downloading $FILE"
@@ -47,38 +61,80 @@ jobs:
           echo "$HOME/blender" >> "$GITHUB_PATH"
           "$HOME/blender/blender" --version | head -n 1
 
-      - name: Render with Blender
+      - name: Render shard ${{ matrix.shard }}
         env:
           OUT_DIR: out/frames
-          RES_PERCENT: ${{ steps.cfg.outputs.pct }}
-          SAMPLES: ${{ steps.cfg.outputs.samples }}
-          FRAME_START: ${{ steps.cfg.outputs.fstart }}
-          FRAME_END: ${{ steps.cfg.outputs.fend }}
+          RES_PERCENT: ${{ needs.plan.outputs.pct }}
+          SAMPLES: ${{ needs.plan.outputs.samples }}
+          ANIM_START: ${{ needs.plan.outputs.fstart }}
+          ANIM_END: ${{ needs.plan.outputs.fend }}
+          FRAMES: ${{ matrix.frames }}
         run: |
           set -o pipefail
-          mkdir -p out/frames
-          blender -b -noaudio --python-exit-code 1 -P "jobs/${{ steps.cfg.outputs.job }}/scene.py" 2>&1 | tee out/blender.log | tail -n 60
-          ls -la out/frames | head -n 20
+          mkdir -p out/frames out/logs
+          blender -b -noaudio --python-exit-code 1 -P "jobs/${{ needs.plan.outputs.job }}/scene.py" 2>&1 | tee "out/logs/shard_${{ matrix.shard }}.log" | tail -n 30
+          ls out/frames | wc -l
+
+      - name: Upload shard
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: shard-${{ matrix.shard }}
+          path: |
+            out/frames
+            out/logs
+          if-no-files-found: warn
+          retention-days: 1
+
+  assemble:
+    needs: [plan, render]
+    if: always() && needs.plan.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all shards
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          pattern: shard-*
+          merge-multiple: true
+          path: shards
 
       - name: Encode video
-        if: steps.cfg.outputs.fstart != steps.cfg.outputs.fend
+        if: needs.plan.outputs.encode == 'true'
         run: |
-          ffmpeg -y -loglevel error -framerate 30 -start_number ${{ steps.cfg.outputs.fstart }} -i out/frames/frame_%04d.png -c:v libx264 -preset veryfast -crf 18 -pix_fmt yuv420p -movflags +faststart out/${{ steps.cfg.outputs.job }}.mp4
+          command -v ffmpeg >/dev/null || { sudo apt-get update -y && sudo apt-get install -y --no-install-recommends ffmpeg; }
+          mkdir -p out
+          ffmpeg -y -loglevel error -framerate 30 -start_number ${{ needs.plan.outputs.fstart }} -i shards/frames/frame_%04d.png -c:v libx264 -preset slow -crf 16 -pix_fmt yuv420p -movflags +faststart out/${{ needs.plan.outputs.job }}.mp4
+          ls -la out
 
       - name: Publish release
-        if: always()
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir -p out
-          TAG="render-${{ github.run_number }}-${{ steps.cfg.outputs.job }}"
-          FILES=$(ls out/*.mp4 out/frames/frame_*.png 2>/dev/null | head -n 12)
-          if [ -f out/blender.log ]; then FILES="$FILES out/blender.log"; fi
+          JOB="${{ needs.plan.outputs.job }}"
+          TAG="render-${{ github.run_number }}-$JOB"
+          cat shards/logs/shard_*.log > out/blender.log 2>/dev/null || true
+          ALL=($(ls shards/frames/frame_*.png 2>/dev/null | sort))
+          N=${#ALL[@]}
+          FILES=""
+          if [ -f "out/$JOB.mp4" ]; then FILES="out/$JOB.mp4"; fi
+          if [ "$N" -gt 0 ]; then
+            STEP=$(( (N + 5) / 6 ))
+            for ((i=0; i<N; i+=STEP)); do FILES="$FILES ${ALL[$i]}"; done
+            LAST="${ALL[$((N-1))]}"
+            case " $FILES " in *" $LAST "*) ;; *) FILES="$FILES $LAST";; esac
+          fi
+          if [ -s out/blender.log ]; then FILES="$FILES out/blender.log"; fi
           {
-            echo "Render of ${{ steps.cfg.outputs.job }} from commit ${{ github.sha }}"
+            echo "Render of $JOB from commit ${{ github.sha }}: $N frames"
             echo
-            echo '```'
-            tail -n 60 out/blender.log 2>/dev/null || echo "no blender log"
-            echo '```'
+            for f in shards/logs/shard_*.log; do
+              [ -e "$f" ] || continue
+              echo "**$(basename "$f")**"
+              echo '```'
+              tail -n 4 "$f"
+              echo '```'
+            done
           } > out/notes.md
           gh release create "$TAG" $FILES --title "$TAG" --notes-file out/notes.md
