@@ -97,7 +97,7 @@ def finish(name, mat, smooth=True):
 
 
 # ------------------------------------------------------------------ eye
-housing_mat = metal("Housing", (0.012, 0.014, 0.018), 0.28)
+housing_mat = metal("Housing", (0.05, 0.06, 0.07), 0.3)
 bpy.ops.mesh.primitive_torus_add(
     major_radius=1.34, minor_radius=0.26, major_segments=128, minor_segments=32,
     location=(0, 0, 0), rotation=FACE_CAMERA)
@@ -108,41 +108,44 @@ bpy.ops.mesh.primitive_cylinder_add(
     vertices=96, radius=1.2, depth=0.08, location=(0, 0.55, 0), rotation=FACE_CAMERA)
 finish("BackPlate", back_mat, smooth=False)
 
-ring_outer_mat, ring_outer_em = emission("RingOuter", CYAN, 14.0)
+ring_outer_mat, ring_outer_em = emission("RingOuter", CYAN, 8.0)
 bpy.ops.mesh.primitive_torus_add(
     major_radius=1.08, minor_radius=0.022, major_segments=160, minor_segments=12,
     location=(0, -0.06, 0), rotation=FACE_CAMERA)
 finish("RingOuter", ring_outer_mat)
 
 # Iris diaphragm: overlapping blades arranged like a camera lens
-blade_mat = metal("Blade", (0.02, 0.025, 0.03), 0.22)
+blade_mat = metal("Blade", (0.34, 0.38, 0.42), 0.32)
+blade_bsdf = blade_mat.node_tree.nodes["Principled BSDF"]
+blade_bsdf.inputs["Emission Color"].default_value = (0.0, 0.35, 0.4, 1.0)
+blade_bsdf.inputs["Emission Strength"].default_value = 0.8
 rig = bpy.data.objects.new("BladeRig", None)
 scene.collection.objects.link(rig)
 BLADES = 16
 for i in range(BLADES):
     ang = 2 * math.pi * i / BLADES
-    radius = 0.68
+    radius = 0.72
     y = 0.16 + (0.006 if i % 2 else 0.0)
     bpy.ops.mesh.primitive_plane_add(
         size=1.0,
         location=(radius * math.cos(ang), y, radius * math.sin(ang)),
         rotation=(HALF_PI, -ang + 0.42, 0.0))
     blade = finish("Blade%02d" % i, blade_mat, smooth=False)
-    blade.scale = (0.66, 0.34, 1.0)
+    blade.scale = (0.7, 0.34, 1.0)
     blade.parent = rig
 
 pupil_mat = metal("Pupil", (0.0, 0.0, 0.0), 0.05, metallic=0.0)
 bpy.ops.mesh.primitive_cylinder_add(
-    vertices=96, radius=0.30, depth=0.12, location=(0, 0.1, 0), rotation=FACE_CAMERA)
+    vertices=96, radius=0.36, depth=0.12, location=(0, 0.1, 0), rotation=FACE_CAMERA)
 pupil = finish("Pupil", pupil_mat)
 
-ring_pupil_mat, ring_pupil_em = emission("RingPupil", GREEN, 22.0)
+ring_pupil_mat, ring_pupil_em = emission("RingPupil", GREEN, 14.0)
 bpy.ops.mesh.primitive_torus_add(
-    major_radius=0.325, minor_radius=0.016, major_segments=128, minor_segments=12,
+    major_radius=0.385, minor_radius=0.018, major_segments=128, minor_segments=12,
     location=(0, 0.0, 0), rotation=FACE_CAMERA)
 finish("RingPupil", ring_pupil_mat)
 
-ring_mid_mat, ring_mid_em = emission("RingMid", CYAN, 9.0)
+ring_mid_mat, ring_mid_em = emission("RingMid", CYAN, 3.0)
 for ring_radius in (0.52, 0.84):
     bpy.ops.mesh.primitive_torus_add(
         major_radius=ring_radius, minor_radius=0.007, major_segments=128, minor_segments=8,
@@ -181,15 +184,16 @@ add_area("BottomKick", (0.0, -3.0, -4.0), 3.0, 0.5, CYAN, 450)
 # ---------------------------------------------- city lights as bokeh
 bokeh_mats = [
     emission("Bokeh%d" % i, color, strength)[0]
-    for i, (color, strength) in enumerate([(CYAN, 7.0), (GREEN, 7.0), (AMBER, 6.0), (ICE, 8.0)])
+    for i, (color, strength) in enumerate(
+        [(CYAN, 3.0), (CYAN, 3.0), (GREEN, 3.0), (AMBER, 2.5), (ICE, 3.5)])
 ]
-for _ in range(150):
+for _ in range(70):
     y = random.uniform(10.0, 42.0)
-    spread_x = 0.17 * (y + 9.0)
-    spread_z = 0.30 * (y + 9.0)
+    spread_x = 0.17 * (y + 11.0)
+    spread_z = 0.30 * (y + 11.0)
     x = random.uniform(-spread_x, spread_x) * 1.1
     z = random.uniform(-spread_z, spread_z) * 1.1
-    r = random.uniform(0.12, 0.45) * (y / 20.0)
+    r = random.uniform(0.06, 0.22) * (y / 20.0)
     bpy.ops.mesh.primitive_circle_add(
         vertices=32, radius=r, fill_type="NGON", location=(x, y, z), rotation=FACE_CAMERA)
     obj = bpy.context.active_object
@@ -214,14 +218,14 @@ def ease(p):
 
 
 def update(p):
-    cam.location = (0.0, -9.8 + 1.4 * ease(p), 0.0)
+    cam.location = (0.0, -11.2 + 1.6 * ease(p), 0.0)
     cam_data.dof.focus_distance = abs(cam.location.y) - 0.05
     s = 1.0 + 0.22 * math.sin(2 * math.pi * p)
     pupil.scale = (s, s, 1.0)
     rig.rotation_euler = (0.0, 0.35 * p, 0.0)
     pulse = 1.0 + 0.45 * math.sin(2 * math.pi * p + 0.6)
-    ring_pupil_em.inputs["Strength"].default_value = 22.0 * pulse
-    ring_outer_em.inputs["Strength"].default_value = 14.0 * (1.0 + 0.25 * math.sin(2 * math.pi * p))
+    ring_pupil_em.inputs["Strength"].default_value = 14.0 * pulse
+    ring_outer_em.inputs["Strength"].default_value = 8.0 * (1.0 + 0.25 * math.sin(2 * math.pi * p))
 
 
 # ------------------------------------------------------- render settings
