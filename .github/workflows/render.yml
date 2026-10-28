@@ -91,6 +91,9 @@ jobs:
     if: always() && needs.plan.result == 'success'
     runs-on: ubuntu-latest
     steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
       - name: Download all shards
         continue-on-error: true
         uses: actions/download-artifact@v4
@@ -110,8 +113,11 @@ jobs:
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
           mkdir -p out
+          echo "--- downloaded shards ---"
+          find shards -maxdepth 2 | head -n 20
           JOB="${{ needs.plan.outputs.job }}"
           TAG="render-${{ github.run_number }}-$JOB"
           cat shards/logs/shard_*.log > out/blender.log 2>/dev/null || true
@@ -137,4 +143,4 @@ jobs:
               echo '```'
             done
           } > out/notes.md
-          gh release create "$TAG" $FILES --title "$TAG" --notes-file out/notes.md
+          gh release create "$TAG" $FILES --target "${{ github.sha }}" --title "$TAG" --notes-file out/notes.md
