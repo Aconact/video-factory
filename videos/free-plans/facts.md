@@ -12,6 +12,7 @@
 ## Claude Free (Anthropic) https://claude.com/pricing
 - Models: Sonnet and Haiku. Opus and Fable: not on Free.
 - Usage: rolling five-hour session window, "no fixed message count"; Pro gives at least 5x more usage per session.
+- Pricing FAQ (checked 29 Oct 2026): "Every plan has usage limits that reset on a rolling five-hour session window, and paid plans add weekly limits on top." So a weekly limit is listed for paid plans only.
 - Included: chat on web/desktop/mobile; search the web, create files, run code; memory across conversations; connect apps and tools; Artifacts; Claude Design, Slides, Docs; voice mode; Projects (up to 5); skills.
 - Not on Free: Claude Code, Research, Claude in Chrome, Opus, Fable.
 
