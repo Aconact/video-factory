@@ -1,0 +1,530 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>free-plans</title>
+<style>
+@font-face { font-family: "InterV"; src: url("http://app.local/fonts/Inter.ttf"); font-weight: 100 900; }
+@font-face { font-family: "JBM"; src: url("http://app.local/fonts/JetBrainsMono.ttf"); font-weight: 100 800; }
+
+html, body { margin: 0; padding: 0; background: transparent; }
+#stage { position: relative; width: 1080px; height: 1920px; overflow: hidden; font-family: InterV, sans-serif; color: #F2FBFF; }
+.abs { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; }
+.mono { font-family: JBM, monospace; }
+
+/* ---------- background ---------- */
+#bg { background:
+  radial-gradient(900px 700px at 12% 8%, rgba(0,245,255,.15), transparent 62%),
+  radial-gradient(900px 800px at 92% 94%, rgba(0,255,135,.12), transparent 62%),
+  #04090B; opacity: 0; }
+#grid { background-image:
+  linear-gradient(rgba(0,245,255,.05) 1px, transparent 1px),
+  linear-gradient(90deg, rgba(0,245,255,.05) 1px, transparent 1px);
+  background-size: 90px 90px; }
+#bokeh { position: absolute; left: 0; top: 0; }
+
+/* ---------- HUD ---------- */
+#hud { font-family: JBM, monospace; font-size: 26px; letter-spacing: .22em; color: rgba(0,245,255,.85); }
+#hud .l { position: absolute; left: 60px; top: 122px; display: flex; align-items: center; gap: 16px; }
+#hud .r { position: absolute; right: 60px; top: 122px; color: rgba(160,190,200,.7); }
+#dot { width: 14px; height: 14px; border-radius: 50%; background: #00FF87; box-shadow: 0 0 18px #00FF87; }
+
+/* ---------- hook ---------- */
+#hookTitle { position: absolute; left: 0; width: 1080px; top: 250px; text-align: center; font-weight: 900; font-size: 86px; line-height: 1.06; letter-spacing: -.025em; text-transform: uppercase; }
+#hookTitle .w, #hookSub .w { display: inline-block; opacity: 0; will-change: transform; }
+#hookTitle .g { color: #00FF87; text-shadow: 0 0 40px rgba(0,255,135,.55); }
+#hookTitle .line { display: block; white-space: nowrap; }
+#hookSub { position: absolute; left: 0; width: 1080px; top: 1500px; text-align: center; font-weight: 700; font-size: 44px; letter-spacing: -.01em; color: rgba(242,251,255,.92); }
+#hookSub .g { color: #00F5FF; }
+#hookTitle, #hookSub { -webkit-text-stroke: 0; text-shadow: 0 4px 30px rgba(0,0,0,.65); }
+
+/* ---------- board ---------- */
+#heading { position: absolute; left: 60px; top: 246px; width: 960px; height: 60px; }
+#heading .h { position: absolute; left: 0; top: 0; width: 960px; display: flex; align-items: center; gap: 22px; font-family: JBM, monospace; font-weight: 700; font-size: 32px; letter-spacing: .2em; color: #00F5FF; opacity: 0; white-space: nowrap; }
+#heading .h i { flex: 1; height: 2px; background: linear-gradient(90deg, rgba(0,245,255,.6), rgba(0,245,255,0)); transform-origin: left; }
+#heading .h b { color: rgba(160,190,200,.75); font-weight: 600; }
+
+.row { position: absolute; left: 60px; width: 960px; height: 285px; border-radius: 32px; box-sizing: border-box; opacity: 0;
+  background: linear-gradient(135deg, rgba(var(--c), .13), rgba(255,255,255,.025) 70%);
+  border: 2px solid rgba(var(--c), .5); box-shadow: 0 0 44px rgba(var(--c), .14), inset 0 0 60px rgba(var(--c), .04); }
+.row .pn { position: absolute; left: 36px; top: 20px; font-family: JBM, monospace; font-weight: 800; font-size: 30px; letter-spacing: .2em; color: rgb(var(--c)); }
+.row .pill { position: absolute; right: 30px; top: 16px; font-family: JBM, monospace; font-weight: 700; font-size: 20px; letter-spacing: .18em; padding: 7px 16px; border-radius: 40px; border: 2px solid rgba(var(--c), .55); color: rgb(var(--c)); }
+.pane { position: absolute; left: 36px; top: 76px; width: 888px; height: 196px; opacity: 0; }
+.pane > * { position: absolute; }
+
+.big { left: 0; top: 14px; font-weight: 900; font-size: 96px; line-height: 1.02; letter-spacing: -.035em; white-space: nowrap; }
+.sub { font-weight: 600; font-size: 30px; color: rgba(190,212,220,.85); white-space: nowrap; }
+.big2 { font-weight: 900; font-size: 64px; letter-spacing: -.03em; line-height: 1; white-space: nowrap; }
+.big3 { font-weight: 900; font-size: 70px; letter-spacing: -.03em; line-height: 1; white-space: nowrap; }
+.tag { font-family: JBM, monospace; font-weight: 700; font-size: 22px; letter-spacing: .16em; color: rgba(160,190,200,.8); }
+.badge { display: flex; align-items: center; gap: 10px; font-family: JBM, monospace; font-weight: 800; font-size: 23px; letter-spacing: .12em; padding: 9px 18px; border-radius: 14px; border: 2px solid rgba(255,176,0,.75); color: #FFB000; background: rgba(255,176,0,.08); white-space: nowrap; }
+.badge svg { width: 26px; height: 26px; }
+.chip { display: inline-block; font-family: JBM, monospace; font-weight: 700; font-size: 22px; letter-spacing: .1em; padding: 8px 16px; margin-right: 12px; border-radius: 12px; border: 2px solid rgba(255,255,255,.28); color: #F2FBFF; }
+.stamp { display: inline-block; font-family: JBM, monospace; font-weight: 800; font-size: 22px; letter-spacing: .14em; padding: 8px 16px; border-radius: 12px; border: 2px solid #FFB000; color: #FFB000; background: rgba(255,176,0,.1); }
+.ic { fill: none; stroke: rgb(var(--c)); stroke-width: 3.2; stroke-linecap: round; stroke-linejoin: round; }
+
+.fchip { position: absolute; top: 4px; height: 186px; box-sizing: border-box; border-radius: 24px; border: 2px solid rgba(var(--c), .45); background: rgba(255,255,255,.045); }
+.fchip svg { position: absolute; left: 26px; top: 20px; width: 58px; height: 58px; }
+.fchip b { position: absolute; left: 26px; top: 94px; font-weight: 800; font-size: 31px; letter-spacing: -.02em; white-space: nowrap; }
+.fchip i { position: absolute; left: 26px; top: 144px; font-style: normal; font-weight: 600; font-size: 23px; color: rgba(190,212,220,.8); white-space: nowrap; }
+
+.week { display: flex; align-items: center; gap: 8px; }
+.week span.k { font-family: JBM, monospace; font-weight: 700; font-size: 20px; letter-spacing: .14em; color: rgba(160,190,200,.85); margin-right: 10px; }
+.week span.b { width: 30px; height: 30px; border-radius: 8px; background: rgba(var(--c), .16); border: 2px solid rgba(var(--c), .5); }
+
+/* ---------- catch ---------- */
+#catch { opacity: 0; }
+#catchCard { position: absolute; left: 90px; top: 330px; width: 900px; height: 880px; border-radius: 40px; box-sizing: border-box;
+  border: 3px solid rgba(255,176,0,.7); background: linear-gradient(160deg, rgba(255,176,0,.13), rgba(4,9,11,.92) 60%);
+  box-shadow: 0 0 90px rgba(255,176,0,.22); }
+#catchTag { position: absolute; left: 50px; top: 46px; display: flex; align-items: center; gap: 16px; font-family: JBM, monospace; font-weight: 800; font-size: 34px; letter-spacing: .2em; color: #FFB000; }
+#catchTag svg { width: 44px; height: 44px; }
+#catchBig { position: absolute; left: 0; width: 900px; top: 120px; text-align: center; font-weight: 900; font-size: 250px; letter-spacing: -.05em; line-height: 1; color: #FFB000; text-shadow: 0 0 70px rgba(255,176,0,.5); }
+#catchSub { position: absolute; left: 0; width: 900px; top: 400px; text-align: center; font-weight: 700; font-size: 38px; color: #F2FBFF; }
+#catchSub small { display: block; margin-top: 10px; font-family: JBM, monospace; font-weight: 600; font-size: 24px; letter-spacing: .14em; color: rgba(190,212,220,.75); }
+#adMock { position: absolute; left: 80px; top: 566px; width: 740px; }
+.bub { height: 62px; border-radius: 24px; background: rgba(255,255,255,.09); margin-bottom: 18px; }
+.bub.u { width: 360px; margin-left: 380px; background: rgba(0,255,135,.2); }
+.bub.a { width: 560px; }
+#adCard { position: relative; height: 112px; border-radius: 22px; border: 2px dashed rgba(255,176,0,.75); background: rgba(255,176,0,.1); }
+#adCard .ad { position: absolute; right: 18px; top: 14px; font-family: JBM, monospace; font-weight: 800; font-size: 20px; letter-spacing: .16em; color: #04090B; background: #FFB000; padding: 4px 12px; border-radius: 8px; }
+#adCard .l1, #adCard .l2 { position: absolute; left: 24px; height: 16px; border-radius: 8px; background: rgba(255,255,255,.28); }
+#adCard .l1 { top: 30px; width: 380px; }
+#adCard .l2 { top: 62px; width: 250px; background: rgba(255,255,255,.16); }
+
+/* ---------- CTA ---------- */
+#cta .t { position: absolute; left: 0; width: 1080px; text-align: center; opacity: 0; text-shadow: 0 4px 30px rgba(0,0,0,.7); }
+#ctaFollow { top: 226px; font-weight: 900; font-size: 112px; letter-spacing: -.03em; color: #00FF87; text-shadow: 0 0 50px rgba(0,255,135,.5), 0 4px 30px rgba(0,0,0,.7); }
+#ctaBrand { top: 352px; font-weight: 900; font-size: 66px; letter-spacing: -.01em; }
+#ctaBrand b { color: #00FF87; font-weight: 900; }
+#ctaTag { top: 440px; font-family: JBM, monospace; font-weight: 700; font-size: 32px; letter-spacing: .18em; color: #00F5FF; }
+
+/* ---------- captions ---------- */
+#caps { position: absolute; left: 70px; width: 940px; top: 1300px; height: 200px; display: flex; align-items: center; justify-content: center; }
+.cap { position: absolute; left: 0; width: 940px; top: 0; height: 200px; display: none; align-items: center; justify-content: center; text-align: center; flex-wrap: wrap; align-content: center; }
+.cap .cw { display: inline-block; margin: 0 .2em; font-weight: 900; font-size: 68px; line-height: 1.12; letter-spacing: -.02em; color: #fff;
+  -webkit-text-stroke: 13px rgba(2,10,14,.92); paint-order: stroke fill; transform-origin: 50% 70%; }
+#src { position: absolute; left: 60px; width: 960px; top: 1548px; text-align: center; font-family: JBM, monospace; font-weight: 600; font-size: 22px; letter-spacing: .06em; color: rgba(160,190,200,.7); opacity: 0; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="bg" class="abs"><div id="grid" class="abs"></div><canvas id="bokeh" width="1080" height="1920"></canvas></div>
+
+  <div id="board" class="abs">
+    <div id="heading"></div>
+  </div>
+
+  <div id="catch" class="abs">
+    <div id="catchCard">
+      <div id="catchTag"><svg viewBox="0 0 64 64"><path d="M32 8 L58 54 H6 Z" fill="none" stroke="#FFB000" stroke-width="4" stroke-linejoin="round"/><path d="M32 24 V38" stroke="#FFB000" stroke-width="4" stroke-linecap="round"/><circle cx="32" cy="46" r="2.6" fill="#FFB000"/></svg><span>ONE CATCH</span></div>
+      <div id="catchBig">ADS</div>
+      <div id="catchSub">ChatGPT Free tier<small>ROLLING OUT IN SOME COUNTRIES</small></div>
+      <div id="adMock"><div class="bub u"></div><div class="bub a"></div><div id="adCard"><div class="ad">AD</div><div class="l1"></div><div class="l2"></div></div></div>
+    </div>
+  </div>
+
+  <div id="hook" class="abs"><div id="hookTitle"></div><div id="hookSub"></div></div>
+
+  <div id="cta" class="abs">
+    <div id="ctaFollow" class="t">FOLLOW</div>
+    <div id="ctaBrand" class="t">TECHPULSE <b>REPORT</b></div>
+    <div id="ctaTag" class="t">THE FACTS BEHIND AI NEWS</div>
+  </div>
+
+  <div id="hud" class="abs"><div class="l"><span id="dot"></span><span>TECHPULSE REPORT</span></div><div class="r">OCT 2026</div></div>
+
+  <div id="caps"></div>
+  <div id="src"></div>
+</div>
+
+<script>
+(async () => {
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const prog = (t, a, d) => clamp((t - a) / d);
+const easeOut = x => 1 - Math.pow(1 - x, 3);
+const easeIn = x => x * x * x;
+const easeOutBack = x => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+const nz = s => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+const $ = id => document.getElementById(id);
+
+const TL = await (await fetch('http://app.local/timeline.json')).json();
+await document.fonts.load('900 80px InterV');
+await document.fonts.load('700 30px JBM');
+await document.fonts.ready;
+
+const S = {};
+for (const sc of TL.scenes) {
+  S[sc.id] = sc;
+  let prev = -1;                       // starts must grow, so no word flashes by
+  for (const w of sc.words) { if (w.s < prev + 0.09) w.s = prev + 0.09; prev = w.s; }
+}
+const DUR = TL.duration;
+function cue(id, key, nth = 0) {
+  const k = nz(key); let n = 0;
+  for (const w of S[id].words) if (nz(w.w).startsWith(k)) { if (n++ === nth) return w.s; }
+  console.log('cue not found', id, key);
+  return S[id].start;
+}
+// 0..1 fade window: in at a, out at b
+const win = (t, a, b, din = .3, dout = .3) => easeOut(prog(t, a, din)) * (1 - easeIn(prog(t, b - dout, dout)));
+
+/* ---------------- icons ---------------- */
+const IC = {
+  mic: '<svg viewBox="0 0 64 64"><rect class="ic" x="22" y="6" width="20" height="34" rx="10"/><path class="ic" d="M14 30 a18 18 0 0 0 36 0"/><path class="ic" d="M32 48 V58 M22 58 H42"/></svg>',
+  think: '<svg viewBox="0 0 64 64"><path class="ic" d="M32 6 L38 26 L58 32 L38 38 L32 58 L26 38 L6 32 L26 26 Z"/></svg>',
+  clock: '<svg viewBox="0 0 64 64"><circle class="ic" cx="32" cy="32" r="25"/><path class="ic" d="M32 16 V32 L43 39"/></svg>',
+  cube: '<svg viewBox="0 0 64 64"><path class="ic" d="M32 6 L56 20 V44 L32 58 L8 44 V20 Z M8 20 L32 34 L56 20 M32 34 V58"/></svg>',
+  folder: '<svg viewBox="0 0 64 64"><path class="ic" d="M6 16 H24 L30 24 H58 V52 H6 Z"/></svg>',
+  memory: '<svg viewBox="0 0 64 64"><rect class="ic" x="16" y="16" width="32" height="32" rx="5"/><path class="ic" d="M24 8 V16 M32 8 V16 M40 8 V16 M24 48 V56 M32 48 V56 M40 48 V56 M8 24 H16 M8 32 H16 M8 40 H16 M48 24 H56 M48 32 H56 M48 40 H56"/></svg>',
+  search: '<svg viewBox="0 0 64 64"><circle class="ic" cx="27" cy="27" r="18"/><path class="ic" d="M40 40 L57 57 M18 27 H36"/></svg>',
+  image: '<svg viewBox="0 0 64 64"><rect class="ic" x="6" y="10" width="52" height="44" rx="7"/><circle class="ic" cx="22" cy="26" r="5"/><path class="ic" d="M6 46 L24 31 L36 42 L44 35 L58 48"/></svg>',
+  lock: '<svg viewBox="0 0 64 64"><rect x="12" y="28" width="40" height="28" rx="6" fill="none" stroke="currentColor" stroke-width="5"/><path d="M20 28 V20 a12 12 0 0 1 24 0 V28" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/></svg>',
+};
+
+/* ---------------- board ---------------- */
+const P = [
+  { id: 'chatgpt', name: 'CHATGPT', rgb: '0,255,135', hex: '#00FF87', top: 330 },
+  { id: 'claude', name: 'CLAUDE', rgb: '255,176,0', hex: '#FFB000', top: 645 },
+  { id: 'gemini', name: 'GEMINI', rgb: '0,245,255', hex: '#00F5FF', top: 960 },
+];
+const board = $('board');
+const chipBox = (p, i, n, icon, label, sub) => {
+  const w = n === 3 ? 282 : 430, gap = n === 3 ? 21 : 28;
+  return `<div class="fchip" id="${p.id}-f${i}" style="left:${i * (w + gap)}px;width:${w}px">${IC[icon]}<b>${label}</b><i>${sub}</i></div>`;
+};
+const panes = {
+  chatgpt: {
+    models: `<div class="big" id="chatgpt-model">GPT-6 Luna</div><div class="sub" id="chatgpt-msub" style="left:2px;top:132px">default model for Free and Go</div>`,
+    limits: `<svg id="chatgpt-inf" viewBox="0 0 96 64" style="left:0;top:34px;width:190px;height:127px;overflow:visible"><path pathLength="100" d="M16 32 C16 14 38 14 48 32 C58 50 80 50 80 32 C80 14 58 14 48 32 C38 50 16 50 16 32 Z" fill="none" stroke="#00FF87" stroke-width="5.5" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="100"/></svg>
+      <div class="big2" id="chatgpt-unl" style="left:222px;top:10px">Unlimited</div>
+      <div class="sub" id="chatgpt-txt" style="left:224px;top:84px;font-size:34px;font-weight:700;color:#F2FBFF">text chats</div>
+      <div id="chatgpt-caps" style="left:224px;top:140px;white-space:nowrap"><span class="chip" id="chatgpt-c0">files</span><span class="chip" id="chatgpt-c1">images</span><span class="chip" id="chatgpt-c2">voice</span><span class="stamp" id="chatgpt-stamp">STILL CAPPED</span></div>`,
+    features: chipBox(P[0], 0, 3, 'mic', 'Voice', 'with limits') + chipBox(P[0], 1, 3, 'think', 'Think button', 'for harder questions') + chipBox(P[0], 2, 3, 'clock', 'Scheduled tasks', 'up to 3 active'),
+    verdict: `<div class="tag" style="left:2px;top:6px">BEST FOR</div><div class="big3" id="chatgpt-take" style="left:0;top:40px">Chatting all day</div><div class="sub" style="left:2px;top:134px">unlimited text chats</div>`,
+  },
+  claude: {
+    models: `<div class="big" id="claude-model">Sonnet + Haiku</div><div class="sub" id="claude-msub" style="left:2px;top:132px"><span id="claude-lock" style="color:#FFB000;display:inline-block;width:26px;height:26px;vertical-align:-4px;margin-right:10px">${IC.lock}</span>Opus and Fable are paid only</div>`,
+    limits: `<svg id="claude-ring" viewBox="0 0 120 120" style="left:0;top:22px;width:152px;height:152px"><circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,176,0,.2)" stroke-width="11"/><circle id="claude-arc" cx="60" cy="60" r="50" fill="none" stroke="#FFB000" stroke-width="11" stroke-linecap="round" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100" transform="rotate(-90 60 60)"/><text x="60" y="73" text-anchor="middle" font-family="InterV" font-weight="900" font-size="38" fill="#F2FBFF">5h</text></svg>
+      <div class="big2" id="claude-big" style="left:190px;top:14px">5-hour sessions</div>
+      <div class="sub" id="claude-s1" style="left:192px;top:92px;font-size:34px;font-weight:700;color:#F2FBFF">rolling window</div>
+      <div class="sub" id="claude-s2" style="left:192px;top:142px">no fixed message count</div>`,
+    features: chipBox(P[1], 0, 3, 'cube', 'Artifacts', 'create in chat') + chipBox(P[1], 1, 3, 'folder', 'Projects', 'up to 5') + chipBox(P[1], 2, 3, 'memory', 'Memory', 'across chats'),
+    verdict: `<div class="tag" style="left:2px;top:6px">BEST FOR</div><div class="big3" id="claude-take" style="left:0;top:40px">Building things</div><div class="sub" style="left:2px;top:134px">Artifacts · Projects · memory</div>`,
+  },
+  gemini: {
+    models: `<div class="big" id="gemini-model">Flash-Lite</div><div class="sub" id="gemini-msub" style="left:2px;top:132px">Auto steps up for hard prompts</div><div class="badge" id="gemini-badge" style="right:0;top:128px"><span style="display:inline-block;width:26px;height:26px">${IC.lock}</span>ARGON: PAID ONLY</div>`,
+    limits: `<svg id="gemini-ring" viewBox="0 0 120 120" style="left:0;top:22px;width:152px;height:152px"><circle cx="60" cy="60" r="50" fill="none" stroke="rgba(0,245,255,.2)" stroke-width="11"/><circle id="gemini-arc" cx="60" cy="60" r="50" fill="none" stroke="#00F5FF" stroke-width="11" stroke-linecap="round" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100" transform="rotate(-90 60 60)"/><text x="60" y="73" text-anchor="middle" font-family="InterV" font-weight="900" font-size="38" fill="#F2FBFF">5h</text></svg>
+      <div class="big2" id="gemini-big" style="left:190px;top:14px">5-hour reset</div>
+      <div class="sub" id="gemini-s1" style="left:192px;top:92px;font-size:34px;font-weight:700;color:#F2FBFF">plus a weekly cap</div>
+      <div class="week" id="gemini-week" style="left:192px;top:146px"><span class="k">WEEK</span>${'<span class="b"></span>'.repeat(7)}</div>`,
+    features: chipBox(P[2], 0, 2, 'search', 'Deep Research', 'no paid plan needed') + chipBox(P[2], 1, 2, 'image', 'Image generation', 'Nano Banana 2'),
+    verdict: `<div class="tag" style="left:2px;top:6px">BEST FOR</div><div class="big3" id="gemini-take" style="left:0;top:40px">Research + images</div><div class="sub" style="left:2px;top:134px">Deep Research · image generation</div>`,
+  },
+};
+const rowEl = {}, paneEl = {};
+for (const p of P) {
+  const r = document.createElement('div');
+  r.className = 'row'; r.id = 'row-' + p.id; r.style.setProperty('--c', p.rgb); r.style.top = p.top + 'px';
+  r.innerHTML = `<div class="pn">${p.name}</div><div class="pill">FREE PLAN</div>` +
+    ['models', 'limits', 'features', 'verdict'].map(k => `<div class="pane" id="pane-${p.id}-${k}">${panes[p.id][k]}</div>`).join('');
+  board.appendChild(r);
+  rowEl[p.id] = r;
+  for (const k of ['models', 'limits', 'features', 'verdict']) paneEl[p.id + '-' + k] = $('pane-' + p.id + '-' + k);
+}
+// headings
+const HEAD = [
+  { k: 'models', n: '01', t: 'THE MODEL' }, { k: 'limits', n: '02', t: 'THE LIMITS' },
+  { k: 'features', n: '03', t: 'THE FEATURES' }, { k: 'verdict', n: '04', t: 'OUR TAKE' },
+];
+for (const h of HEAD) {
+  const d = document.createElement('div'); d.className = 'h'; d.id = 'h-' + h.k;
+  d.innerHTML = `<b>${h.n}</b><span>${h.t}</span><i></i>`;
+  $('heading').appendChild(d);
+}
+
+/* ---------------- schedule ---------------- */
+const sc = id => S[id];
+const paneWin = {                    // when each pane type is on screen (the old one leaves before the next arrives)
+  models: [sc('models').start + .12, sc('limits').start],
+  limits: [sc('limits').start + .12, sc('features').start],
+  features: [sc('features').start + .12, sc('catch').start],
+  verdict: [sc('verdict').start + .12, sc('cta').start + .2],
+};
+const rowCue = {
+  chatgpt: cue('models', "chatgpt"), claude: cue('models', 'claude'), gemini: cue('models', 'gemini'),
+};
+const anim = [];   // {el, t0, d, dy, dx, s, pane}
+const A = (el, t0, o = {}) => {
+  const e = typeof el === 'string' ? $(el) : el;
+  const pane = e.closest('.pane');
+  anim.push({ el: e, t0, d: o.d ?? .5, dy: o.dy ?? 28, dx: o.dx ?? 0, s: o.s ?? .96, pane, direct: !!pane && e.parentElement === pane });
+};
+// models
+A('chatgpt-model', cue('models', 'gpt6'), { dy: 34, s: .9, d: .55 });
+A('chatgpt-msub', cue('models', 'luna'), { dy: 16 });
+A('claude-model', cue('models', 'sonnet'), { dy: 34, s: .9, d: .55 });
+A('claude-msub', cue('models', 'haiku'), { dy: 16 });
+A('gemini-model', cue('models', 'flashlite'), { dy: 34, s: .9, d: .55 });
+A('gemini-msub', cue('models', 'auto'), { dy: 16 });
+A('gemini-badge', cue('models', 'argon'), { dy: 20, s: .85, d: .5 });
+// limits
+A('chatgpt-inf', cue('limits', 'chatgpt'), { dy: 10, s: .85, d: .4 });
+A('claude-ring', cue('limits', 'claude'), { dy: 0, dx: -20, s: .8, d: .45 });
+A('gemini-ring', cue('limits', 'gemini'), { dy: 0, dx: -20, s: .8, d: .45 });
+A('gemini-week', cue('limits', 'weekly') - .15, { dy: 12, d: .4 });
+A('chatgpt-unl', cue('limits', 'unlimited'), { dy: 24, d: .45 });
+A('chatgpt-txt', cue('limits', 'text'), { dy: 18 });
+A('chatgpt-c0', cue('limits', 'files'), { dy: 14, d: .35 });
+A('chatgpt-c1', cue('limits', 'images'), { dy: 14, d: .35 });
+A('chatgpt-c2', cue('limits', 'voice'), { dy: 14, d: .35 });
+A('chatgpt-stamp', cue('limits', 'capped'), { dy: 0, s: 1.35, d: .3 });
+A('claude-big', cue('limits', 'claude'), { dx: 30, dy: 0 });
+A('claude-s1', cue('limits', 'claude') + .15, { dx: 30, dy: 0 });
+A('claude-s2', cue('limits', 'claude') + .3, { dx: 30, dy: 0 });
+A('gemini-big', cue('limits', 'gemini'), { dx: 30, dy: 0 });
+A('gemini-s1', cue('limits', 'gemini') + .15, { dx: 30, dy: 0 });
+// features
+const FE = (id, c) => A(id, c, { dy: 36, s: .9, d: .5 });
+FE('chatgpt-f0', cue('features', 'voice')); FE('chatgpt-f1', cue('features', 'think')); FE('chatgpt-f2', cue('features', 'scheduled'));
+FE('claude-f0', cue('features', 'artifacts')); FE('claude-f1', cue('features', 'projects')); FE('claude-f2', cue('features', 'memory'));
+FE('gemini-f0', cue('features', 'deep')); FE('gemini-f1', cue('features', 'image'));
+// verdict (rows light up at each question)
+const takeCue = { chatgpt: cue('verdict', 'chatting'), claude: cue('verdict', 'building'), gemini: cue('verdict', 'research') };
+A('chatgpt-take', takeCue.chatgpt, { dy: 26 }); A('claude-take', takeCue.claude, { dy: 26 }); A('gemini-take', takeCue.gemini, { dy: 26 });
+const animEls = new Set(anim.map(a => a.el));
+const turnT = {
+  limits:   { chatgpt: S.limits.start - .3,   claude: cue('limits', 'claude') - .15,     gemini: cue('limits', 'gemini') - .15 },
+  features: { chatgpt: S.features.start - .3, claude: cue('features', 'artifacts') - .3, gemini: cue('features', 'deep') - .3 },
+  verdict:  { chatgpt: S.verdict.start - .3,  claude: takeCue.claude - .3,               gemini: takeCue.gemini - .3 },
+};
+const dimWin = { limits: [S.limits.start - .15, S.features.start - .15], features: [S.features.start - .15, S.catch.start], verdict: [S.verdict.start - .15, S.cta.start] };
+function rowDim(id, t) {
+  for (const k of ['limits', 'features', 'verdict']) {
+    const [a, b] = dimWin[k];
+    if (t >= a && t < b) return 1 - .62 * easeOut(prog(t, a, .3)) * (1 - easeOut(prog(t, turnT[k][id], .45)));
+  }
+  return 1;
+}
+
+/* ---------------- hook ---------------- */
+const hookWords = S.hook.words;
+const titleWords = hookWords.slice(0, 7), subWords = hookWords.slice(7);
+const mk = (w, g) => `<span class="w${g ? ' g' : ''}">${w}</span>`;
+$('hookTitle').innerHTML =
+  `<span class="line">${mk(titleWords[0].w)} ${mk(titleWords[1].w, 1)} ${mk(titleWords[2].w, 1)}</span>` +
+  `<span class="line">${mk(titleWords[3].w)} ${mk(titleWords[4].w)} ${mk(titleWords[5].w)} ${mk(titleWords[6].w)}</span>`;
+$('hookSub').innerHTML = subWords.map((w, i) => `<span class="w${i >= 3 ? ' g' : ''}">${w.w}</span>`).join(' ');
+const hookSpans = [...document.querySelectorAll('#hookTitle .w')].concat([...document.querySelectorAll('#hookSub .w')]);
+const hookT = hookWords.map(w => w.s);
+
+/* ---------------- sound cues (read by tools/make_audio.py) ---------------- */
+const CUES = [];
+for (const a of anim) { const id = a.el.id; if (/(-msub|-s1|-s2|-txt)$/.test(id)) continue; CUES.push({ t: a.t0, k: /-c\d$/.test(id) ? 'tick' : 'pop', id }); }
+for (const id of ['models', 'limits', 'features', 'verdict', 'cta']) CUES.push({ t: S[id].start, k: 'whoosh', id });
+CUES.push({ t: S.catch.start - .1, k: 'whoosh', id: 'catch' });
+for (const p of P) CUES.push({ t: rowCue[p.id] - .1, k: 'row', id: p.id });
+hookT.slice(0, 7).forEach((t, i) => CUES.push({ t, k: 'hook', id: 'w' + i, n: i }));
+CUES.push({ t: cue('catch', 'ads') - .05, k: 'impact', id: 'ads' });
+CUES.push({ t: cue('catch', 'catch'), k: 'warn', id: 'tag' });
+CUES.push({ t: cue('limits', 'capped'), k: 'stamp', id: 'stamp' });
+CUES.push({ t: cue('cta', 'follow') - .05, k: 'cta', id: 'follow' });
+CUES.push({ t: cue('cta', 'facts') - .05, k: 'tick', id: 'tag2' });
+window.CUES = CUES.sort((a, b) => a.t - b.t);
+
+/* ---------------- captions ---------------- */
+function chunk(words) {
+  let groups = [], cur = [];
+  words.forEach((w, i) => { cur.push(i); if (/[.?!:;,]$/.test(w.w)) { groups.push(cur); cur = []; } });
+  if (cur.length) groups.push(cur);
+  let res = [];
+  for (const g of groups) {
+    const chars = g.reduce((n, i) => n + words[i].w.length + 1, 0);
+    const parts = Math.max(1, Math.ceil(Math.max(g.length / 5, chars / 30)));
+    const per = Math.ceil(g.length / parts);
+    for (let k = 0; k < g.length; k += per) res.push(g.slice(k, k + per));
+  }
+  for (let i = 0; i < res.length; i++) {            // no single-word orphans
+    if (res[i].length === 1 && res.length > 1) {
+      if (i + 1 < res.length && res[i].length + res[i + 1].length <= 5) { res[i + 1] = res[i].concat(res[i + 1]); res.splice(i, 1); i--; }
+      else if (i > 0 && res[i - 1].length + 1 <= 6) { res[i - 1] = res[i - 1].concat(res[i]); res.splice(i, 1); i--; }
+    }
+  }
+  return res;
+}
+const capsRoot = $('caps');
+const caps = [];
+for (const scene of TL.scenes) {
+  if (scene.id === 'hook') continue;                  // the hook is its own big title
+  const ch = chunk(scene.words);
+  ch.forEach((idx, n) => {
+    const el = document.createElement('div'); el.className = 'cap';
+    el.innerHTML = idx.map(i => `<span class="cw">${scene.words[i].w}</span>`).join('');
+    capsRoot.appendChild(el);
+    const first = scene.words[idx[0]].s;
+    const nextFirst = n + 1 < ch.length ? scene.words[ch[n + 1][0]].s : scene.speech_end + .25;
+    caps.push({ el, spans: [...el.children], words: idx.map(i => scene.words[i]), t0: first - .03, t1: nextFirst - .03, scene: scene.id });
+  });
+}
+
+/* ---------------- background bokeh ---------------- */
+const bctx = $('bokeh').getContext('2d');
+function rnd(seed) { let a = seed; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const R = rnd(42);
+const dots = Array.from({ length: 34 }, () => ({
+  x: R() * 1080, y: R() * 2100, r: 7 + R() * 34, a: .06 + R() * .14, v: 10 + R() * 26,
+  c: [[0, 245, 255], [0, 255, 135], [255, 176, 0], [0, 245, 255]][Math.floor(R() * 4)],
+}));
+function drawBokeh(t) {
+  bctx.clearRect(0, 0, 1080, 1920);
+  for (const d of dots) {
+    const y = ((d.y - d.v * t) % 2100 + 2100) % 2100 - 90;
+    const g = bctx.createRadialGradient(d.x, y, 0, d.x, y, d.r);
+    g.addColorStop(0, `rgba(${d.c},${d.a})`); g.addColorStop(.72, `rgba(${d.c},${d.a * .8})`); g.addColorStop(1, `rgba(${d.c},0)`);
+    bctx.fillStyle = g; bctx.beginPath(); bctx.arc(d.x, y, d.r, 0, 6.2832); bctx.fill();
+  }
+}
+
+/* ---------------- per frame ---------------- */
+const apply = (el, e, op, dx, dy, s) => {
+  el.style.opacity = op;
+  el.style.transform = `translate(${(1 - e) * dx}px,${(1 - e) * dy}px) scale(${s + (1 - s) * e})`;
+};
+const SRC = {
+  models: 'Sources: OpenAI · Anthropic · Google (checked Oct 28 2026)',
+  limits: 'Sources: OpenAI (Aug 2026) · Anthropic · Google',
+  features: 'Sources: OpenAI release notes · Anthropic · Google Help',
+  catch: 'Source: OpenAI release notes and Free tier FAQ',
+  verdict: 'Our take, based on the official pages above',
+};
+const A0 = (id) => [S[id].start, S[id].end];
+
+function update(t) {
+  // background crossfade between the eye footage and the board scenes
+  const bgA = Math.min(easeOut(prog(t, S.hook.end - .15, .5)), 1 - easeIn(prog(t, S.cta.start - .1, .4)));
+  $('bg').style.opacity = bgA;
+  if (bgA > 0.001) { drawBokeh(t); $('grid').style.backgroundPosition = `0px ${(t * 14) % 90}px`; }
+
+  // hook words
+  hookSpans.forEach((el, i) => {
+    const p = prog(t, hookT[i], .38);
+    const e = easeOutBack(p);
+    const out = 1 - easeIn(prog(t, S.hook.end - .3, .3));
+    el.style.opacity = clamp(p * 1.6) * out;
+    el.style.transform = `translateY(${(1 - clamp(e, 0, 1.2)) * 30}px) scale(${.7 + .3 * clamp(e, 0, 1.15)})`;
+  });
+
+  // board
+  const boardA = (1 - win(t, S.catch.start - .05, S.verdict.start + .1, .3, .3)) * (1 - easeIn(prog(t, S.cta.start - .22, .3)));
+  board.style.opacity = boardA;
+  for (const p of P) {
+    const e = easeOut(prog(t, rowCue[p.id] - .1, .55));
+    rowEl[p.id].style.opacity = e * rowDim(p.id, t);
+    rowEl[p.id].style.transform = `translateY(${(1 - e) * 70}px) scale(${.95 + .05 * e})`;
+  }
+  // each pane fades as a whole; animated children reveal on their own cue inside it
+  for (const p of P) for (const k of Object.keys(paneWin)) {
+    const [a, b] = paneWin[k];
+    const w = win(t, a, b, .3, .18);
+    const el = paneEl[p.id + '-' + k];
+    el.__w = w;
+    el.style.opacity = 1;
+    el.style.display = w > .002 ? 'block' : 'none';
+    for (const ch of el.children) if (!animEls.has(ch)) ch.style.opacity = w;
+  }
+  for (const a of anim) {
+    const e = easeOut(prog(t, a.t0, a.d));
+    apply(a.el, e, a.direct ? e * a.pane.__w : e, a.dx, a.dy, a.s);
+  }
+  // headings
+  for (const h of HEAD) {
+    const [a, b] = paneWin[h.k];
+    const w = win(t, a, b, .3, .18);
+    const el = $('h-' + h.k);
+    el.style.opacity = w;
+    el.style.transform = `translateX(${(1 - w) * -30}px)`;
+    el.lastChild.style.transform = `scaleX(${easeOut(prog(t, a + .1, .6))})`;
+  }
+  // models: lock pops in with the Claude line
+  // infinity draw
+  const infP = easeOut(prog(t, cue('limits', 'chatgpt') + .1, 1.4));
+  const infPath = $('chatgpt-inf').firstElementChild;
+  infPath.style.strokeDashoffset = 100 * (1 - infP);
+  infPath.style.opacity = infP > 0 ? 1 : 0;
+  // rings
+  const ringStart = cue('limits', 'five');
+  const ringP = easeOut(prog(t, ringStart - .5, 1.3));
+  $('claude-arc').style.strokeDashoffset = 100 * (1 - Math.max(ringP * .82, easeOut(prog(t, cue('limits', 'claude'), 1.1)) * .35));
+  $('gemini-arc').style.strokeDashoffset = 100 * (1 - Math.max(ringP * .82, easeOut(prog(t, cue('limits', 'gemini'), 1.1)) * .35));
+  // weekly bar lights up one block at a time
+  const wk = cue('limits', 'weekly');
+  [...$('gemini-week').querySelectorAll('.b')].forEach((b, i) => {
+    const on = easeOut(prog(t, wk - .1 + i * .07, .2));
+    b.style.background = `rgba(0,245,255,${.16 + .74 * on})`;
+    b.style.boxShadow = on > .5 ? '0 0 14px rgba(0,245,255,.6)' : 'none';
+  });
+  // verdict: each row gets a glow when its turn comes
+  for (const p of P) {
+    const k = easeOut(prog(t, takeCue[p.id], .5));
+    const inV = win(t, paneWin.verdict[0], paneWin.verdict[1], .3, .3);
+    const g = k * inV;
+    rowEl[p.id].style.boxShadow = `0 0 ${44 + 60 * g}px rgba(${p.rgb}, ${.14 + .38 * g}), inset 0 0 60px rgba(${p.rgb}, ${.04 + .07 * g})`;
+    rowEl[p.id].style.borderColor = `rgba(${p.rgb}, ${.5 + .5 * g})`;
+  }
+
+  // catch card
+  const cA = win(t, S.catch.start - .05, S.verdict.start + .05, .35, .35);
+  $('catch').style.opacity = cA;
+  $('catchCard').style.transform = `translateY(${(1 - easeOut(prog(t, S.catch.start, .6))) * 60}px)`;
+  const big = cue('catch', 'ads');
+  const bp = easeOutBack(prog(t, big - .05, .5));
+  $('catchBig').style.opacity = clamp(prog(t, big - .05, .25));
+  $('catchBig').style.transform = `scale(${.55 + .45 * clamp(bp, 0, 1.12)})`;
+  $('catchSub').style.opacity = easeOut(prog(t, cue('catch', 'chatgpt'), .5));
+  $('adMock').style.opacity = easeOut(prog(t, cue('catch', 'countries') - .9, .6));
+  $('adCard').style.transform = `translateY(${(1 - easeOut(prog(t, cue('catch', 'countries') - .7, .6))) * 40}px)`;
+  $('catchTag').style.opacity = easeOut(prog(t, cue('catch', 'catch'), .4));
+
+  // CTA
+  const c0 = cue('cta', 'follow'), c1 = cue('cta', 'techpulse'), c2 = cue('cta', 'facts');
+  const ctaOut = 1;                                  // stays up to the last frame, so the loop restarts on the hook
+  for (const [id, c, dy] of [['ctaFollow', c0, 40], ['ctaBrand', c1, 30], ['ctaTag', c2, 20]]) {
+    const e = easeOut(prog(t, c - .05, .5));
+    const el = $(id); el.style.opacity = e * ctaOut;
+    el.style.transform = `translateY(${(1 - e) * dy}px) scale(${.94 + .06 * e})`;
+  }
+
+  // captions
+  for (const c of caps) {
+    const on = t >= c.t0 && t < c.t1;
+    c.el.style.display = on ? 'flex' : 'none';
+    if (!on) continue;
+    c.spans.forEach((sp, i) => {
+      const w = c.words[i];
+      const started = t >= w.s;
+      const nextS = i + 1 < c.words.length ? c.words[i + 1].s : c.t1 + .02;
+      const current = started && t < nextS;
+      const pop = current ? easeOutBack(prog(t, w.s, .16)) : 1;
+      sp.style.color = current ? '#00FF87' : '#FFFFFF';
+      sp.style.opacity = started ? 1 : .42;
+      sp.style.transform = `scale(${current ? 1 + .1 * clamp(pop, 0, 1.2) : 1})`;
+    });
+  }
+  // outro: captions sit below the eye
+  $('caps').style.transform = t >= S.cta.start + .04 ? 'translateY(230px)' : 'none';
+  // sources line
+  let sid = null;
+  for (const k of ['models', 'limits', 'features', 'catch', 'verdict']) if (t >= S[k].start - .05 && t < S[k].end) sid = k;
+  const srcEl = $('src');
+  if (sid) { srcEl.textContent = SRC[sid]; srcEl.style.opacity = .9 * Math.min(easeOut(prog(t, S[sid].start, .4)), 1 - easeIn(prog(t, S[sid].end - .25, .25))); }
+  else srcEl.style.opacity = 0;
+  $('dot').style.opacity = .55 + .45 * Math.sin(t * 5);
+}
+window.renderFrame = (t) => { update(t); return true; };
+window.TL = TL;
+update(0);
+window.sceneReady = true;
+})();
+</script>
+</body>
+</html>
