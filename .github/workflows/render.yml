@@ -109,6 +109,8 @@ jobs:
           command -v ffmpeg >/dev/null || { sudo apt-get update -y && sudo apt-get install -y --no-install-recommends ffmpeg; }
           mkdir -p out
           ffmpeg -y -loglevel error -framerate 30 -start_number ${{ needs.plan.outputs.fstart }} -i shards/frames/frame_%04d.png -c:v libx264 -preset slow -crf 16 -pix_fmt yuv420p -movflags +faststart out/${{ needs.plan.outputs.job }}.mp4
+          # Near-lossless copy (4:4:4) for compositing the finished video from
+          ffmpeg -y -loglevel error -framerate 30 -start_number ${{ needs.plan.outputs.fstart }} -i shards/frames/frame_%04d.png -c:v libx264 -preset slow -crf 8 -pix_fmt yuv444p out/${{ needs.plan.outputs.job }}_hq.mp4
           ls -la out
 
       - name: Publish release
@@ -126,6 +128,7 @@ jobs:
           N=${#ALL[@]}
           FILES=""
           if [ -f "out/$JOB.mp4" ]; then FILES="out/$JOB.mp4"; fi
+          if [ -f "out/${JOB}_hq.mp4" ]; then FILES="$FILES out/${JOB}_hq.mp4"; fi
           if [ "$N" -gt 0 ]; then
             STEP=$(( (N + 5) / 6 ))
             for ((i=0; i<N; i+=STEP)); do FILES="$FILES ${ALL[$i]}"; done
