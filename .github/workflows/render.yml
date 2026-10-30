@@ -129,7 +129,17 @@ jobs:
           FILES=""
           if [ -f "out/$JOB.mp4" ]; then FILES="out/$JOB.mp4"; fi
           if [ -f "out/${JOB}_hq.mp4" ]; then FILES="$FILES out/${JOB}_hq.mp4"; fi
-          if [ "$N" -gt 0 ]; then
+          if [ "$N" -gt 0 ] && [ "$N" -le 40 ]; then
+            # Small preview run: publish every frame, plus one contact sheet to look at them together
+            for f in "${ALL[@]}"; do FILES="$FILES $f"; done
+            command -v ffmpeg >/dev/null || { sudo apt-get update -y && sudo apt-get install -y --no-install-recommends ffmpeg; }
+            COLS=$(( N < 8 ? N : 8 ))
+            ROWS=$(( (N + COLS - 1) / COLS ))
+            if ffmpeg -y -loglevel error -framerate 1 -pattern_type glob -i 'shards/frames/frame_*.png' \
+                 -vf "scale=270:480,tile=${COLS}x${ROWS}:padding=4:color=0x303030" -frames:v 1 out/sheet.png; then
+              FILES="$FILES out/sheet.png"
+            fi
+          elif [ "$N" -gt 0 ]; then
             STEP=$(( (N + 5) / 6 ))
             for ((i=0; i<N; i+=STEP)); do FILES="$FILES ${ALL[$i]}"; done
             LAST="${ALL[$((N-1))]}"
