@@ -45,9 +45,8 @@ base, extra = divmod(len(frame_list), shards)
 include = []
 index = 0
 for shard in range(shards):
-    count = base + (1 if shard < extra else 0)
-    chunk = frame_list[index:index + count]
-    index += count
+    # every shard takes every N-th frame, so each one gets the same mix of cheap and expensive frames
+    chunk = frame_list[shard::shards]
     include.append({"shard": shard, "frames": ",".join(str(f) for f in chunk)})
 
 print("job=%s" % job)

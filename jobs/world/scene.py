@@ -389,7 +389,7 @@ def text3d(name, body, size, mat, parent=None, loc=(0, 0, 0), rot=(0, 0, 0), fac
     cu.extrude = depth
     cu.bevel_depth = bevel
     cu.bevel_resolution = 2
-    cu.resolution_u = 3
+    cu.resolution_u = 10   # smooth letter curves (3 left visible facets on big letters)
     cu.align_x = align
     cu.align_y = "CENTER"
     cu.space_character = spacing
@@ -501,10 +501,11 @@ def emblem_chatgpt(name, parent, loc, k=1.0):
 
 def emblem_claude(name, parent, loc, k=1.0):
     root = empty(name, parent, loc, scale=(k, k, k))
-    big_mat = M_rim(name + "Big", (0.5, 0.2, 0.02), AMBER, 3.2, rough=0.28, metallic=0.9)
+    # rougher and less metallic: the sharp mirror image of the strip lights read as a smiling face
+    big_mat = M_rim(name + "Big", (0.5, 0.2, 0.02), AMBER, 3.2, rough=0.5, metallic=0.55)
     big = prim("sphere", big_mat, root, (0, 0, 0), r=0.9, seg=64, rings=32)
     orbit = empty(name + "Orbit", root, (0, 0, 0), (0.9, 0.0, 0.25))
-    small_mat = M_rim(name + "Small", (0.7, 0.35, 0.05), (1.0, 0.8, 0.3), 3.0, rough=0.25, metallic=0.9)
+    small_mat = M_rim(name + "Small", (0.7, 0.35, 0.05), (1.0, 0.8, 0.3), 3.0, rough=0.45, metallic=0.6)
     small = prim("sphere", small_mat, orbit, (1.6, 0, 0), r=0.42, seg=48, rings=24)
     track = prim("torus", M_emit(name + "Track", AMBER, 1.6), orbit, (0, 0, 0), (0, 0, 0), R=1.6, r=0.012, ms=128, ns=6)
     return root, big, orbit, small, track
@@ -526,7 +527,7 @@ def build_models():
     root = empty("models", None, O)
     # ChatGPT: a moon (GPT-6 Luna) with orbit rings
     A = empty("A", root, (0, 0, 0))
-    a_lab = label("a_lab", "CHATGPT", GREEN, A, (0, 0, 2.15))
+    a_lab = label("a_lab", "CHATGPT", GREEN, A, (0, 0, 2.55))   # clear of the outer orbit ring
     a_emb, a_moon, a_ring, a_ring2 = emblem_chatgpt("a_emb", A, (0, 0, 0.55))
     a_name = big_text("a_name", "GPT-6 Luna", 0.58, WHITE, A, (0, 0, -1.05), maxw=3.9)
     a_sub = text3d("a_sub", "default for Free and Go", 0.27, M_text("a_sub", GREY, 0.8), parent=A, loc=(0, 0, -1.62),
@@ -554,9 +555,9 @@ def build_models():
     # Argon: a big dark crystal behind a padlock
     D = empty("D", root, (0.0, 30.0, 2.4))
     d_mat = M_rim("argon", (0.02, 0.03, 0.04), CYAN, 0.5, rough=0.2, metallic=0.9)
-    d_gem = prim("ico", d_mat, D, (0, 0, 0.6), smooth=False, r=1.55, sub=1)
+    d_gem = prim("ico", d_mat, D, (0, 0, 0.85), smooth=False, r=1.4, sub=1)   # tip stays above the ARGON label
     d_name = big_text("d_name", "ARGON", 0.72, (0.55, 0.62, 0.66), D, (0, 0, -1.0), strength=0.5, maxw=3.6)
-    lock = empty("lock", D, (0, -1.9, 0.3))
+    lock = empty("lock", D, (0, -1.9, 0.8))
     lock_body = rbox("lock_body", 0.9, 0.7, 0.34, 0.1, M_body("lockb", base=(0.9, 0.35, 0.02), metallic=0.9, rough=0.25,
                                                        emit=AMBER, emit_strength=0.5), lock, (0, 0, -0.2))
     arc = [(0.3 * math.cos(math.pi * i / 24), 0.0, 0.3 * math.sin(math.pi * i / 24)) for i in range(25)]
@@ -683,8 +684,9 @@ def build_limits():
             th = HALF_PI - 2 * math.pi * k / 5
             tick = rbox("tick%d_%s" % (k, key), 0.06, 0.26, 0.06, 0.02, M_emit("tk%d%s" % (k, key), WHITE, 2.0), g,
                         (1.32 * math.cos(th), 0, 1.32 * math.sin(th)), (0, 0, th - HALF_PI))
-        five = big_text("five_" + key, "5H", 0.62, WHITE, g, (0, -0.05, 0.02), strength=0.6)
-        sub = text3d("rs_" + key, "reset", 0.32, M_text("rs_" + key, GREY, 0.8), parent=g, loc=(0, 0, -1.62),
+        five = big_text("five_" + key, "5H", 0.62, WHITE, g, (0, -0.05, 0.2), strength=0.6)
+        # "reset" sits inside the ring, under the 5H (below the ring it ran into the weekly squares)
+        sub = text3d("rs_" + key, "reset", 0.27, M_text("rs_" + key, GREY, 0.8), parent=g, loc=(0, -0.05, -0.42),
                      face="Inter-SemiBold.otf", depth=0.02, bevel=0.004)
         rings[key] = (g, arc, arc_mat, five)
     week = []
