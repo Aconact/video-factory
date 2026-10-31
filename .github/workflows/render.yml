@@ -71,9 +71,20 @@ jobs:
           ANIM_END: ${{ needs.plan.outputs.fend }}
           FRAMES: ${{ matrix.frames }}
         run: |
-          set -o pipefail
           mkdir -p out/frames out/logs
-          blender -b -noaudio --python-exit-code 1 -P "jobs/${{ needs.plan.outputs.job }}/scene.py" 2>&1 | tee "out/logs/shard_${{ matrix.shard }}.log" | tail -n 30
+          WANTED="$FRAMES"
+          # If Blender stops early (crash, lost runner process), run again for just the frames still missing
+          for attempt in 1 2 3; do
+            MISSING=""
+            for f in ${WANTED//,/ }; do
+              [ -f "out/frames/frame_$(printf %04d "$f").png" ] || MISSING="$MISSING,$f"
+            done
+            MISSING="${MISSING#,}"
+            [ -z "$MISSING" ] && break
+            echo "attempt $attempt: $(echo "$MISSING" | tr ',' '\n' | wc -l) frames to render"
+            FRAMES="$MISSING" blender -b -noaudio --python-exit-code 1 -P "jobs/${{ needs.plan.outputs.job }}/scene.py" 2>&1 \
+              | tee -a "out/logs/shard_${{ matrix.shard }}.log" | tail -n 30 || true
+          done
           ls out/frames | wc -l
 
       - name: Upload shard

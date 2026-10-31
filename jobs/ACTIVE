@@ -1,9 +1,9 @@
 # Read by .github/scripts/plan.py. Editing and pushing this file starts a render.
 # Frames >= 1000000 are benchmark variants (see jobs/world/scene.py): 1VV BBBB = variant VV of base frame BBBB.
+# Full render: no "frames" line. 1540 frames (t = 3.0 s .. 54.3 s) at full size, shared by 20 jobs.
 job=world
 pct=100
 samples=6
 fstart=91
 fend=1630
-frames=1061500,1061501,1061502,1071500,1071501,1071502,1061530,1061531,1061532,1071530,1071531,1071532
-shards=12
+shards=20

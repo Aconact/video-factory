@@ -1086,7 +1086,7 @@ def update_all(t):
 # Benchmark frames: a frame number >= 1,000,000 means "variant (n // 10000) % 100 of base frame n % 10000".
 # Variants only change resolution and samples, so timing and noise can be compared on the same picture.
 VARIANTS = {
-    0: (None, None, True),     # whatever the job asks for
+    0: (None, None, False),    # whatever the job asks for (same noise pattern every frame: measured steadier)
     1: (100, 6, True),
     2: (75, 8, True),
     3: (66, 10, True),
