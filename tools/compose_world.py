@@ -43,6 +43,8 @@ def main():
     ap.add_argument("--out", required=True)
     ap.add_argument("--preset", default="slow")
     ap.add_argument("--crf", default="22")
+    ap.add_argument("--x264", default="", help="extra x264 parameters, e.g. aq-mode=3:aq-strength=0.9")
+    ap.add_argument("--grain", type=int, default=3, help="strength of the temporal dither noise (0 = none)")
     ap.add_argument("--limit", type=int, default=0, help="only the first N frames (quick test)")
     ap.add_argument("--start", type=int, default=0, help="first frame to write (quick test)")
     args = ap.parse_args()
@@ -53,7 +55,7 @@ def main():
     last = total if not args.limit else min(total, args.start + args.limit)
 
     x_in = (by_id["hook"]["end"] - 0.35, by_id["hook"]["end"] + 0.40)       # eye -> world
-    x_out = (by_id["cta"]["start"] - 0.20, by_id["cta"]["start"] + 0.40)    # world -> eye (backwards)
+    x_out = (by_id["cta"]["start"] - 0.20, by_id["cta"]["start"] + 0.18)    # world -> eye (backwards); short, so the last 3D words do not ghost behind "FOLLOW"
     print("cross-fades: in %.2f-%.2f s, out %.2f-%.2f s" % (x_in + x_out), flush=True)
 
     work = tempfile.mkdtemp(prefix="eye_")
@@ -94,10 +96,11 @@ def main():
         return state["last"]
 
     vf = ("scale=in_range=pc:out_range=tv:out_color_matrix=bt709:flags=accurate_rnd+full_chroma_int,"
-          "format=yuv420p,noise=c0s=3:c0f=t")
+          "format=yuv420p" + (",noise=c0s=%d:c0f=t" % args.grain if args.grain > 0 else ""))
     cmd = ["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", "%dx%d" % (W, H),
            "-r", str(FPS), "-i", "-", "-i", args.audio, "-vf", vf,
            "-c:v", "libx264", "-preset", args.preset, "-crf", str(args.crf), "-profile:v", "high",
+           *(["-x264-params", args.x264] if args.x264 else []),
            "-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709", "-color_range", "tv",
            "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-movflags", "+faststart", "-shortest", args.out]
     enc = subprocess.Popen(cmd, stdin=subprocess.PIPE)
