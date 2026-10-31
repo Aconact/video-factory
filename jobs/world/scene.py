@@ -184,6 +184,23 @@ def set_input(node, name, value):
         print("material input", name, "failed:", exc, flush=True)
 
 
+QUIET_NOTE = []
+
+
+def quiet(mat):
+    """Stop Cycles from using this glowing material as a light source (faster; the area lights do the lighting)."""
+    try:
+        mat.cycles.emission_sampling = "NONE"
+    except Exception:  # noqa: BLE001
+        try:
+            mat.cycles.sample_as_light = False
+        except Exception as exc:  # noqa: BLE001
+            if not QUIET_NOTE:
+                QUIET_NOTE.append(1)
+                print("emission sampling switch failed:", exc, flush=True)
+    return mat
+
+
 def M_emit(name, color, strength):
     mat = bpy.data.materials.new(name)
     mat.use_nodes = True
@@ -195,7 +212,7 @@ def M_emit(name, color, strength):
     em.inputs["Color"].default_value = (*color, 1.0)
     em.inputs["Strength"].default_value = strength
     nt.links.new(em.outputs["Emission"], out.inputs["Surface"])
-    return mat
+    return quiet(mat)
 
 
 def glow(mat, strength):
@@ -217,7 +234,7 @@ def M_body(name, base=(0.03, 0.04, 0.05), metallic=0.8, rough=0.3, emit=None, em
     if emit is not None:
         set_input(bsdf, "Emission Color", (*emit, 1.0))
         set_input(bsdf, "Emission Strength", emit_strength)
-    return mat
+    return quiet(mat)
 
 
 def M_text(name, color, strength):
@@ -256,7 +273,7 @@ def M_rim(name, base, rim, rim_strength=3.0, rough=0.4, metallic=0.2, bump=0.0, 
         set_input(bmp, "Distance", 0.06)
         nt.links.new(noise.outputs["Fac"], bmp.inputs["Height"])
         nt.links.new(bmp.outputs["Normal"], bsdf.inputs["Normal"])
-    return mat
+    return quiet(mat)
 
 
 # ------------------------------------------------------------------ geometry helpers
@@ -350,14 +367,19 @@ FONTS = {}
 def font(name):
     if name not in FONTS:
         path = os.path.join(HERE, "fonts", name)
-        FONTS[name] = bpy.data.fonts.load(path) if os.path.exists(path) else None
-        if FONTS[name] is None:
+        FONTS[name] = None
+        if os.path.exists(path):
+            try:
+                FONTS[name] = bpy.data.fonts.load(path)
+            except Exception as exc:  # noqa: BLE001
+                print("font failed to load", path, exc, flush=True)
+        else:
             print("font missing", path, flush=True)
     return FONTS[name]
 
 
-def text3d(name, body, size, mat, parent=None, loc=(0, 0, 0), rot=(0, 0, 0), face="Inter-ExtraBold.ttf",
-           depth=0.05, bevel=0.01, maxw=None, spacing=1.0, align="CENTER"):
+def text3d(name, body, size, mat, parent=None, loc=(0, 0, 0), rot=(0, 0, 0), face="Inter-ExtraBold.otf",
+           depth=0.04, bevel=0.005, maxw=None, spacing=1.0, align="CENTER"):
     cu = bpy.data.curves.new(name, "FONT")
     cu.body = body
     cu.size = size
@@ -410,13 +432,13 @@ cam_data.sensor_fit = "VERTICAL"
 cam_data.sensor_height = 36
 cam_data.shift_y = -0.10                      # subject sits above the middle; captions use the lower part
 cam_data.dof.use_dof = True
-cam_data.dof.aperture_fstop = 1.4
+cam_data.dof.aperture_fstop = 2.8
 cam = bpy.data.objects.new("Cam", cam_data)
 scene.collection.objects.link(cam)
 scene.camera = cam
 cam_target = Vector((0, 0, 0))
 
-floor_mat = M_body("Floor", base=(0.008, 0.011, 0.014), metallic=0.0, rough=0.09)
+floor_mat = M_body("Floor", base=(0.006, 0.009, 0.012), metallic=0.0, rough=0.13)
 bpy.ops.mesh.primitive_plane_add(size=1.0)
 floor = put_in(bpy.context.active_object)
 floor.scale = (500.0, 500.0, 1.0)
@@ -445,53 +467,7 @@ LIGHTS = [
     (add_area("Fill", 6.0, 6.0, (0.85, 0.95, 1.0), 120 * LIGHT_K), (0.0, -9.0, 2.0)),
 ]
 
-def M_soft(name, color, strength):
-    """A soft round glow: bright in the middle, fading to see-through at the rim (looks like an out-of-focus light)."""
-    try:
-        mat = bpy.data.materials.new(name)
-        mat.use_nodes = True
-        nt = mat.node_tree
-        nt.nodes.clear()
-        out = nt.nodes.new("ShaderNodeOutputMaterial")
-        tc = nt.nodes.new("ShaderNodeTexCoord")
-        grad = nt.nodes.new("ShaderNodeTexGradient")
-        grad.gradient_type = "SPHERICAL"
-        pw = nt.nodes.new("ShaderNodeMath")
-        pw.operation = "POWER"
-        pw.inputs[1].default_value = 1.5
-        em = nt.nodes.new("ShaderNodeEmission")
-        em.name = "EM"
-        em.inputs["Color"].default_value = (*color, 1.0)
-        em.inputs["Strength"].default_value = strength
-        tr = nt.nodes.new("ShaderNodeBsdfTransparent")
-        mix = nt.nodes.new("ShaderNodeMixShader")
-        nt.links.new(tc.outputs["Object"], grad.inputs["Vector"])
-        nt.links.new(grad.outputs["Fac"], pw.inputs[0])
-        nt.links.new(pw.outputs["Value"], mix.inputs[0])
-        nt.links.new(tr.outputs["BSDF"], mix.inputs[1])
-        nt.links.new(em.outputs["Emission"], mix.inputs[2])
-        nt.links.new(mix.outputs["Shader"], out.inputs["Surface"])
-        return mat
-    except Exception as exc:  # noqa: BLE001
-        print("soft material failed, using a flat one:", exc, flush=True)
-        return M_emit(name, color, strength * 0.5)
-
-
-bokeh_mats = [M_soft("Bokeh%d" % i, c, s) for i, (c, s) in enumerate(
-    [(CYAN, 5.0), (CYAN, 4.0), (GREEN, 4.5), (AMBER, 4.0), (ICE, 5.0)])]
-BOKEH = []
-CUR = scene.collection
-for n in range(80):
-    fy = random.uniform(16.0, 48.0)
-    x = random.uniform(-0.27, 0.27) * fy * 1.15
-    z = random.uniform(-0.1, 0.5) * fy * 1.15
-    big = n % 8 == 0
-    r = random.uniform(0.05, 0.16) * (fy / 20.0) * (2.6 if big else 1.0)
-    bpy.ops.mesh.primitive_circle_add(vertices=32, radius=1.0, fill_type="NGON", rotation=FACE)
-    obj = put_in(bpy.context.active_object)
-    obj.scale = (r, r, r)
-    obj.data.materials.append(random.choice(bokeh_mats))
-    BOKEH.append((obj, x, fy, z, random.uniform(0.1, 0.5)))
+BOKEH = []          # (kept so the pose function below stays generic; dust is drawn in the text layer)
 
 # ------------------------------------------------------------------ the sets
 UPDATES = []        # (name, t_from, t_to, collection, update(t))
@@ -508,9 +484,9 @@ def label(name, body, color, parent, loc, size=0.3, spacing=1.5, strength=2.6):
                   face="JetBrainsMono-Bold.ttf", depth=0.03, bevel=0.006, spacing=spacing)
 
 
-def big_text(name, body, size, color, parent, loc, strength=1.2, maxw=None, face="Inter-ExtraBold.ttf", depth=0.07):
+def big_text(name, body, size, color, parent, loc, strength=0.5, maxw=None, face="Inter-ExtraBold.otf", depth=0.05, bevel=0.006):
     return text3d(name, body, size, M_text(name, color, strength), parent=parent, loc=loc,
-                  face=face, depth=depth, bevel=0.012, maxw=maxw)
+                  face=face, depth=depth, bevel=bevel, maxw=maxw)
 
 
 def emblem_chatgpt(name, parent, loc, k=1.0):
@@ -553,8 +529,8 @@ def build_models():
     a_lab = label("a_lab", "CHATGPT", GREEN, A, (0, 0, 2.15))
     a_emb, a_moon, a_ring, a_ring2 = emblem_chatgpt("a_emb", A, (0, 0, 0.55))
     a_name = big_text("a_name", "GPT-6 Luna", 0.58, WHITE, A, (0, 0, -1.05), maxw=3.9)
-    a_sub = text3d("a_sub", "default for Free and Go", 0.2, M_text("a_sub", GREY, 0.9), parent=A, loc=(0, 0, -1.62),
-                   face="Inter-SemiBold.ttf", depth=0.02, bevel=0.004)
+    a_sub = text3d("a_sub", "default for Free and Go", 0.27, M_text("a_sub", GREY, 0.8), parent=A, loc=(0, 0, -1.62),
+                   face="Inter-SemiBold.otf", depth=0.02, bevel=0.004)
     # Claude: two models (Sonnet and Haiku) orbiting
     B = empty("B", root, (5.5, 8.0, 0))
     b_lab = label("b_lab", "CLAUDE", AMBER, B, (0, 0, 2.15))
@@ -613,6 +589,11 @@ def build_models():
         c_halo.rotation_euler = (1.45, 0.0, -0.4 * t)
         popup(c_auto, t, t_auto - 0.1, 0.5)
         k_i = clamp((t - (t_auto + 0.15)) / 0.3, 0.0, n_steps - 1.0)
+        gone = ease_in(prog(t, 14.1, 0.35))
+        if gone > 0.0:
+            s_auto = max(1.0 - gone, 0.001) * c_auto.get("bs", 1.0)
+            c_auto.scale = (s_auto, s_auto, s_auto)
+            c_auto.hide_render = gone >= 0.999
         c_auto.location = add3(lerp3((-4.4, 19.8, -1.2), (-0.9, 26.6, 1.5), k_i / (n_steps - 1.0)), (-0.2, -0.2, 1.0))
         for i, (stp, mat) in enumerate(steps):
             on = ease_out(prog(t, t_auto + 0.15 + i * 0.3, 0.4))
@@ -669,9 +650,9 @@ def build_limits():
                      emit=GREEN if user else GREY, emit_strength=1.4 if user else 0.5)
         b = rbox("bub%d" % i, 0.46 if user else 0.58, 0.26, 0.09, 0.07, mat, L1, (0, 0, 1.45))
         bubbles.append((b, i / 14.0))
-    unl = big_text("unl", "UNLIMITED", 0.64, WHITE, L1, (0, 0, -0.2), strength=1.4, maxw=3.9)
-    txt = text3d("txt", "text chats", 0.3, M_text("txt", GREY, 1.0), parent=L1, loc=(0, 0, -0.78),
-                 face="Inter-SemiBold.ttf", depth=0.02, bevel=0.004)
+    unl = big_text("unl", "UNLIMITED", 0.64, WHITE, L1, (0, 0, -0.2), strength=0.55, maxw=3.9)
+    txt = text3d("txt", "text chats", 0.36, M_text("txt", GREY, 0.8), parent=L1, loc=(0, 0, -0.78),
+                 face="Inter-SemiBold.otf", depth=0.02, bevel=0.004)
     gates = []
     gate_names = ["FILES", "IMAGES", "VOICE"]
     gate_cues = [cue("limits", "files"), cue("limits", "images"), cue("limits", "voice")]
@@ -681,9 +662,9 @@ def build_limits():
         rbox("slab" + nm, 1.28, 0.7, 0.12, 0.08, M_body("slab" + nm, base=(0.03, 0.05, 0.06), metallic=0.6, rough=0.3,
                                                          emit=ICE, emit_strength=0.1), g, (0, 0, 0))
         tube("frame" + nm, [(-0.62, -0.32), (0.62, -0.32), (0.62, 0.32), (-0.62, 0.32)], M_emit("fr" + nm, ICE, 1.6), 0.014, True, g, (0, -0.08, 0))
-        label("lab" + nm, nm, WHITE, g, (0, -0.1, 0.0), size=0.2, spacing=1.3, strength=2.4)
+        label("lab" + nm, nm, WHITE, g, (0, -0.1, -0.05), size=0.24, spacing=1.3, strength=2.0)
         bar_mat = M_emit("bar" + nm, AMBER, 3.6)
-        bar = rbox("bar" + nm, 1.4, 0.13, 0.16, 0.04, bar_mat, g, (0, -0.16, 0.5))
+        bar = rbox("bar" + nm, 1.4, 0.13, 0.16, 0.04, bar_mat, g, (0, -0.16, 0.95))
         gates.append((g, bar))
     stamp = empty("stamp", L1, (0, 0, -2.3), (0, 0, 0.0))
     stamp_txt = label("stamp_t", "STILL CAPPED", AMBER, stamp, (0, 0, 0), size=0.32, spacing=1.5, strength=3.2)
@@ -702,9 +683,9 @@ def build_limits():
             th = HALF_PI - 2 * math.pi * k / 5
             tick = rbox("tick%d_%s" % (k, key), 0.06, 0.26, 0.06, 0.02, M_emit("tk%d%s" % (k, key), WHITE, 2.0), g,
                         (1.32 * math.cos(th), 0, 1.32 * math.sin(th)), (0, 0, th - HALF_PI))
-        five = big_text("five_" + key, "5H", 0.62, WHITE, g, (0, -0.05, 0.02), strength=1.5)
-        sub = text3d("rs_" + key, "reset", 0.24, M_text("rs_" + key, GREY, 1.0), parent=g, loc=(0, 0, -1.62),
-                     face="Inter-SemiBold.ttf", depth=0.02, bevel=0.004)
+        five = big_text("five_" + key, "5H", 0.62, WHITE, g, (0, -0.05, 0.02), strength=0.6)
+        sub = text3d("rs_" + key, "reset", 0.32, M_text("rs_" + key, GREY, 0.8), parent=g, loc=(0, 0, -1.62),
+                     face="Inter-SemiBold.otf", depth=0.02, bevel=0.004)
         rings[key] = (g, arc, arc_mat, five)
     week = []
     wk_root = empty("week", L2, (1.5, 0, -1.12))
@@ -739,7 +720,7 @@ def build_limits():
             popup(g, t, tc - 0.1, 0.45)
         for i, (g, bar) in enumerate(gates):
             drop = ease_out(prog(t, t_cap + 0.1 * i, 0.4))
-            bar.location = (0, -0.16, 0.5 - 0.5 * drop)
+            bar.location = (0, -0.16, 0.95 - 0.53 * drop)
             bar.hide_render = drop <= 0.01
         popup(stamp, t, t_cap + 0.15, 0.4)
         # rings
@@ -801,6 +782,17 @@ def make_icon(name, kind, color, parent, loc, size=0.62, strength=4.5):
     return root, mat
 
 
+def rrect_pts(hw, hh, r, n=6):
+    """Outline of a rounded rectangle as (x, z) pairs, clockwise from the top edge."""
+    pts = []
+    corners = [(hw - r, hh - r, 90, 0), (hw - r, -hh + r, 0, -90), (-hw + r, -hh + r, -90, -180), (-hw + r, hh - r, -180, -270)]
+    for cx, cz, a0, a1 in corners:
+        for i in range(n + 1):
+            ang = math.radians(a0 + (a1 - a0) * i / n)
+            pts.append((cx + r * math.cos(ang), cz + r * math.sin(ang)))
+    return pts
+
+
 def build_features():
     begin_set("features")
     root = empty("features", None, (0.0, 70.0, 0.0))
@@ -811,17 +803,19 @@ def build_features():
     ]
     items = []
     cluster_roots = []
+    tile = 1.5
     for key, name, color, pos, feats in clusters:
         c = empty("c_" + key, root, pos)
-        lab = label("cl_" + key, name, color, c, (0, 0, 2.1), size=0.3, spacing=1.7)
+        lab = label("cl_" + key, name, color, c, (0, 0, 1.75), size=0.34, spacing=1.7)
         n = len(feats)
-        xs = [(i - (n - 1) / 2.0) * (1.5 if n == 3 else 1.75) for i in range(n)]
+        step = 1.65 if n == 3 else 1.95
+        xs = [(i - (n - 1) / 2.0) * step for i in range(n)]
         for (cue_key, kind, text), x in zip(feats, xs):
-            g = empty("f_" + cue_key, c, (x, 0, 0.0))
-            ped = prim("cyl", M_body("ped_" + cue_key, base=(0.02, 0.03, 0.04), metallic=0.8, rough=0.25), g, (0, 0, -0.78), FACE, r=0.58, d=0.09, v=64)
-            prim("torus", M_emit("pr_" + cue_key, color, 3.0), g, (0, -0.02, -0.78), FACE, R=0.58, r=0.014, ms=96, ns=6)
-            icon, mat = make_icon("ic_" + cue_key, kind, color, g, (0, 0, 0.1))
-            tx = big_text("tx_" + cue_key, text, 0.27 if len(text) < 12 else 0.23, WHITE, g, (0, 0, -1.3), strength=1.2, maxw=1.5 if n == 3 else 1.7)
+            g = empty("f_" + cue_key, c, (x, 0, 0.35))
+            rbox("tile_" + cue_key, tile, tile, 0.12, 0.2, M_body("tile_" + cue_key, base=(0.012, 0.026, 0.034), metallic=0.4, rough=0.25), g, (0, 0.1, 0.0))
+            tube("fr_" + cue_key, rrect_pts(tile / 2 - 0.03, tile / 2 - 0.03, 0.19), M_emit("fr_" + cue_key, color, 2.2), 0.022, True, g, (0, 0.0, 0.0))
+            icon, mat = make_icon("ic_" + cue_key, kind, color, g, (0, -0.06, 0.0), size=0.6)
+            tx = big_text("tx_" + cue_key, text, 0.3, WHITE, g, (0, 0, -1.08), maxw=tile + 0.1)
             items.append((cue_key, g, icon, mat, tx, color))
         cluster_roots.append((key, c, lab, name))
     t_feat = {"voice": cue("features", "voice"), "think": cue("features", "think"), "scheduled": cue("features", "scheduled"),
@@ -833,7 +827,7 @@ def build_features():
         for key, c, lab, name in cluster_roots:
             popup(c, t, t_cluster[key], 0.6)
         for cue_key, g, icon, mat, tx, color in items:
-            p = popup(g, t, t_feat[cue_key] - 0.1, 0.6)
+            popup(g, t, t_feat[cue_key] - 0.1, 0.6)
             icon.rotation_euler = (0.0, 0.0, 0.5 * math.sin(1.1 * t + len(cue_key)))
             glow(mat, 4.5 + 3.0 * (1 - ease_out(prog(t, t_feat[cue_key], 0.7))))
 
@@ -849,9 +843,9 @@ def build_catch():
     tube("warn_t", tri, M_emit("warn", AMBER, 4.0), 0.035, True, warn)
     tube("warn_b", [(0, 0.2), (0, -0.08)], M_emit("warn2", AMBER, 4.0), 0.035, False, warn)
     tag = label("tag", "ONE CATCH", AMBER, root, (0.4, 0, 2.2), size=0.34, spacing=1.7, strength=3.2)
-    ads = big_text("ads", "ADS", 1.9, AMBER, root, (0, 0, 1.1), strength=2.2, maxw=3.9, depth=0.16)
-    sub = text3d("csub", "ChatGPT Free tier", 0.36, M_text("csub", WHITE, 1.0), parent=root, loc=(0, 0, 0.0),
-                 face="Inter-SemiBold.ttf", depth=0.02, bevel=0.004)
+    ads = big_text("ads", "ADS", 1.9, AMBER, root, (0, 0, 1.1), strength=1.6, maxw=3.9, depth=0.16, bevel=0.02)
+    sub = text3d("csub", "ChatGPT Free tier", 0.38, M_text("csub", WHITE, 0.6), parent=root, loc=(0, 0, 0.0),
+                 face="Inter-SemiBold.otf", depth=0.02, bevel=0.004)
     small = label("csub2", "ROLLING OUT IN SOME COUNTRIES", GREY, root, (0, 0, -0.42), size=0.19, spacing=1.3, strength=1.6)
     shock_mat = M_emit("shock", AMBER, 6.0)
     shock = prim("torus", shock_mat, root, (0, 0.5, 1.1), FACE, R=1.0, r=0.03, ms=128, ns=8)
@@ -903,6 +897,21 @@ def build_catch():
 
 
 # ---------------------------------------------------------------- set 5: our take (podiums)
+def spin_emblem(key, em, t):
+    if key == "chatgpt":
+        root, moon, ring, ring2 = em
+        ring.rotation_euler = (1.25, 0.0, 0.3 + 0.35 * t)
+        ring2.rotation_euler = (0.55, 0.0, -0.5 - 0.22 * t)
+        moon.rotation_euler = (0.0, 0.0, 0.12 * t)
+    elif key == "claude":
+        root, big, orbit, small, track = em
+        orbit.rotation_euler = (0.9, 0.0, 0.25 + 0.9 * t)
+    else:
+        root, gem, core, halo = em
+        gem.rotation_euler = (0.0, 0.0, 0.25 * t)
+        halo.rotation_euler = (1.45, 0.0, -0.4 * t)
+
+
 def build_verdict():
     begin_set("verdict")
     root = empty("verdict", None, (0.0, 120.0, 0.0))
@@ -914,34 +923,34 @@ def build_verdict():
     ]
     for key, color, pos, question, answer, t_q, t_a in defs:
         g = empty("p_" + key, root, pos)
-        base = prim("cyl", M_body("pb_" + key, base=(0.02, 0.03, 0.04), metallic=0.8, rough=0.22), g, (0, 0, -1.55), FACE, r=1.15, d=0.75, v=72)
-        top_mat = M_emit("pt_" + key, color, 0.4)
-        top = prim("cyl", top_mat, g, (0, -0.4, -1.55), FACE, r=1.0, d=0.03, v=72)
-        ring_mat = M_emit("pr_" + key, color, 0.6)
-        ring = prim("torus", ring_mat, g, (0, -0.4, -1.55), FACE, R=1.15, r=0.025, ms=96, ns=6)
+        prim("cyl", M_body("pb_" + key, base=(0.012, 0.02, 0.026), metallic=0.7, rough=0.2), g, (0, 0, -1.6), (0, 0, 0), r=1.45, d=0.14, v=96)
+        mat_a = M_emit("pa_" + key, color, 0.5)
+        mat_b = M_emit("pb2_" + key, color, 0.3)
+        prim("torus", mat_a, g, (0, 0, -1.52), (0, 0, 0), R=1.4, r=0.035, ms=128, ns=8)
+        prim("torus", mat_b, g, (0, 0, -1.52), (0, 0, 0), R=1.0, r=0.02, ms=128, ns=8)
         if key == "chatgpt":
-            em = emblem_chatgpt("e_" + key, g, (0, -0.2, 0.05), 0.55)
+            em = emblem_chatgpt("e_" + key, g, (0, 0, 0.0), 0.8)
         elif key == "claude":
-            em = emblem_claude("e_" + key, g, (0, -0.2, 0.05), 0.55)
+            em = emblem_claude("e_" + key, g, (0, 0, 0.0), 0.8)
         else:
-            em = emblem_gemini("e_" + key, g, (0, -0.2, 0.05), 0.55)
-        q = text3d("q_" + key, question, 0.32, M_text("q_" + key, GREY, 1.0), parent=g, loc=(0, 0, 1.5), face="Inter-SemiBold.ttf",
-                   depth=0.02, bevel=0.004, maxw=2.9)
-        a = big_text("a_" + key, answer, 0.6, color, g, (0, 0, 0.95), strength=2.0, maxw=2.9)
-        pods.append((key, g, em, top_mat, ring_mat, q, a, t_q, t_a))
+            em = emblem_gemini("e_" + key, g, (0, 0, 0.0), 0.8)
+        q = text3d("q_" + key, question, 0.34, M_text("q_" + key, GREY, 0.9), parent=g, loc=(0, 0, 2.25), face="Inter-SemiBold.otf",
+                   depth=0.02, bevel=0.004, maxw=3.2)
+        a = big_text("a_" + key, answer, 0.72, color, g, (0, 0, 1.6), strength=1.8, maxw=3.0)
+        pods.append((key, g, em, mat_a, mat_b, q, a, t_q, t_a))
 
     def update(t):
-        for key, g, em, top_mat, ring_mat, q, a, t_q, t_a in pods:
-            popup(g, t, 46.8, 0.8)
-            on = ease_out(prog(t, t_q, 0.6))
-            glow(top_mat, 0.4 + 5.0 * on)
-            glow(ring_mat, 0.6 + 5.0 * on)
+        for key, g, em, mat_a, mat_b, q, a, t_q, t_a in pods:
+            popup(g, t, 47.3, 0.7)
+            on = ease_out(prog(t, t_a - 0.25, 0.6))
+            glow(mat_a, 0.5 + 6.0 * on)
+            glow(mat_b, 0.3 + 3.5 * on)
             popup(q, t, t_q - 0.05, 0.5, overshoot=False)
             popup(a, t, t_a - 0.05, 0.55)
-            em[0].rotation_euler = (0.0, 0.0, 0.0)
-            em[0].location = (0, -0.2, 0.05 + 0.08 * math.sin(1.5 * t + len(key)))
+            spin_emblem(key, em, t)
+            em[0].location = (0, 0, 0.1 * math.sin(1.4 * t + len(key)))
 
-    UPDATES.append(("verdict", 46.0, 55.0, COLL["S_verdict"], update))
+    UPDATES.append(("verdict", 46.5, 55.0, COLL["S_verdict"], update))
 
 
 BUILDERS = {"models": build_models, "limits": build_limits, "features": build_features, "catch": build_catch, "verdict": build_verdict}
@@ -1072,10 +1081,22 @@ def update_all(t):
 
 
 # ------------------------------------------------------------------ render settings
-scene.render.engine = "CYCLES"
-cy = scene.cycles
-cy.device = "CPU"
-cy.samples = SAMPLES
+# Benchmark frames: a frame number >= 1,000,000 means "variant (n // 10000) % 100 of base frame n % 10000".
+# Variants only change resolution and samples, so timing and noise can be compared on the same picture.
+VARIANTS = {
+    0: (None, None),     # whatever the job asks for
+    1: (100, 6),
+    2: (75, 8),
+    3: (66, 10),
+    4: (50, 16),
+    5: (75, 12),
+}
+
+
+def split_frame(frame):
+    if frame >= 1000000:
+        return frame % 10000, (frame // 10000) % 100
+    return frame, 0
 
 
 def setp(obj, name, value):
@@ -1085,6 +1106,10 @@ def setp(obj, name, value):
         print("setting", name, "failed:", exc, flush=True)
 
 
+scene.render.engine = "CYCLES"
+cy = scene.cycles
+cy.device = "CPU"
+cy.samples = SAMPLES
 denoise_ok = True
 try:
     cy.denoiser = "OPENIMAGEDENOISE"
@@ -1094,13 +1119,18 @@ except Exception as exc:  # noqa: BLE001
 cy.use_denoising = denoise_ok
 if not denoise_ok:
     cy.samples = max(SAMPLES * 4, 96)
+setp(cy, "denoising_prefilter", "FAST")
+setp(cy, "denoising_quality", "BALANCED")
+setp(cy, "denoising_input_passes", "RGB_ALBEDO_NORMAL")
 setp(cy, "use_adaptive_sampling", True)
-setp(cy, "adaptive_threshold", 0.02)
+setp(cy, "adaptive_threshold", 0.04)
+setp(cy, "adaptive_min_samples", 3)
 setp(cy, "use_animated_seed", True)
-cy.max_bounces = 5
-cy.diffuse_bounces = 2
-cy.glossy_bounces = 4
-cy.transmission_bounces = 2
+cy.max_bounces = 4
+cy.diffuse_bounces = 1
+cy.glossy_bounces = 2
+cy.transmission_bounces = 1
+setp(cy, "transparent_max_bounces", 4)
 setp(cy, "volume_bounces", 0)
 setp(cy, "caustics_reflective", False)
 setp(cy, "caustics_refractive", False)
@@ -1134,16 +1164,22 @@ tree.links.new(glare.outputs["Image"], comp.inputs["Image"])
 # ------------------------------------------------------------------ render
 start = time.time()
 for frame in FRAMES:
-    t = (frame - 1) / FPS
+    base_frame, variant = split_frame(frame)
+    v_pct, v_spp = VARIANTS.get(variant, (None, None))
+    scene.render.resolution_percentage = v_pct or PCT
+    if denoise_ok:
+        cy.samples = v_spp or SAMPLES
+    t = (base_frame - 1) / FPS
     try:
         update_all(t)
     except Exception:  # noqa: BLE001
         print("UPDATE FAILED at frame", frame, flush=True)
         traceback.print_exc()
         sys.stdout.flush()
-    scene.frame_set(frame)
+    scene.frame_set(base_frame)
     scene.render.filepath = os.path.join(OUT_DIR, "frame_%04d.png" % frame)
     t_frame = time.time()
     bpy.ops.render.render(write_still=True)
-    print("RENDERED frame", frame, "t=%.2f" % t, "took %.1fs" % (time.time() - t_frame), "elapsed %.1fs" % (time.time() - start), flush=True)
+    print("RENDERED frame", frame, "t=%.2f" % t, "size %d%% samples %d" % (scene.render.resolution_percentage, cy.samples),
+          "took %.1fs" % (time.time() - t_frame), "elapsed %.1fs" % (time.time() - start), flush=True)
 print("TOTAL_RENDER_SECONDS", round(time.time() - start, 1), flush=True)

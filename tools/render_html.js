@@ -1,11 +1,13 @@
 // Renders an HTML scene (window.renderFrame(t)) to numbered frames with Playwright.
 //
 //   node tools/render_html.js --html videos/x/index.html --fonts videos/fonts \
-//        --timeline timeline.json --out frames [--times 1,2.5] [--workers 2]
+//        --timeline timeline.json --out frames [--times 1,2.5] [--workers 2] [--overlay 1]
 //
 // Frames inside the "alpha windows" (where the page sits on top of Blender footage) are saved as
 // PNG with transparency (a_00001.png); all other frames are saved as JPEG (o_00001.jpg).
 // With --times, only those moments are saved (as t_<seconds>.png, always with transparency).
+// With --overlay 1 the page is opened as index.html?overlay=1 (text layer only, no background) and
+// every frame is saved as a transparent PNG (a_00001.png) to be laid over separately rendered footage.
 const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
@@ -27,7 +29,8 @@ const alphaWindows = [
   [0, byId.hook.end + 0.45],
   [byId.cta.start - 0.2, timeline.duration + 1],
 ];
-const isAlpha = (t) => alphaWindows.some(([a, b]) => t >= a && t < b);
+const overlayOnly = args.overlay === '1';
+const isAlpha = (t) => overlayOnly || alphaWindows.some(([a, b]) => t >= a && t < b);
 
 const mime = { '.ttf': 'font/ttf', '.json': 'application/json', '.html': 'text/html' };
 function resolveRoute(p) {
@@ -50,7 +53,7 @@ async function openPage(browser) {
     if (!file || !fs.existsSync(file)) { console.log('[404]', url.pathname); await route.fulfill({ status: 404, body: 'not found' }); return; }
     await route.fulfill({ status: 200, contentType: mime[path.extname(file)] || 'application/octet-stream', body: fs.readFileSync(file) });
   });
-  await page.goto('http://app.local/index.html');
+  await page.goto('http://app.local/index.html' + (overlayOnly ? '?overlay=1' : ''));
   await page.waitForFunction(() => window.sceneReady === true, null, { timeout: 60000 });
   return page;
 }

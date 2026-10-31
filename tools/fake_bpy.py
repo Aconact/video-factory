@@ -229,12 +229,17 @@ class Curve(Strict):
         object.__setattr__(self, "space_character", 1.0)
 
 
+class MatCycles(Strict):
+    _allowed = {"emission_sampling", "sample_as_light"}
+
+
 class Material(Strict):
     _allowed = {"name", "use_nodes", "diffuse_color"}
 
     def __init__(self, name):
         object.__setattr__(self, "name", name)
         object.__setattr__(self, "node_tree", None)
+        object.__setattr__(self, "cycles", MatCycles())
 
     def __setattr__(self, key, value):
         Strict.__setattr__(self, key, value)
@@ -457,7 +462,8 @@ class Render(Strict):
 class Cycles(Strict):
     _allowed = {"device", "samples", "denoiser", "use_denoising", "use_adaptive_sampling", "adaptive_threshold", "use_animated_seed",
                 "max_bounces", "diffuse_bounces", "glossy_bounces", "transmission_bounces", "volume_bounces", "transparent_max_bounces",
-                "caustics_reflective", "caustics_refractive", "sample_clamp_indirect", "sample_clamp_direct"}
+                "caustics_reflective", "caustics_refractive", "sample_clamp_indirect", "sample_clamp_direct",
+                "denoising_prefilter", "denoising_quality", "denoising_input_passes", "adaptive_min_samples"}
 
 
 class ViewSettings(Strict):

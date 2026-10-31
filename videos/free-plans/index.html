@@ -23,6 +23,9 @@ html, body { margin: 0; padding: 0; background: transparent; }
   background-size: 90px 90px; }
 #bokeh { position: absolute; left: 0; top: 0; }
 
+/* overlay-only mode (?overlay=1): captions, hook title, HUD, CTA and sources over separately rendered 3D footage */
+.overlay #bg, .overlay #board, .overlay #catch { display: none !important; }
+
 /* ---------- HUD ---------- */
 #hud { font-family: JBM, monospace; font-size: 26px; letter-spacing: .22em; color: rgba(0,245,255,.85); }
 #hud .l { position: absolute; left: 60px; top: 122px; display: flex; align-items: center; gap: 16px; }
@@ -147,6 +150,8 @@ const easeIn = x => x * x * x;
 const easeOutBack = x => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
 const nz = s => s.toLowerCase().replace(/[^a-z0-9]/g, '');
 const $ = id => document.getElementById(id);
+const OVERLAY = /[?&]overlay=1/.test(location.search);
+if (OVERLAY) document.documentElement.classList.add('overlay');
 
 const TL = await (await fetch('http://app.local/timeline.json')).json();
 await document.fonts.load('900 80px InterV');
@@ -385,6 +390,9 @@ function drawBokeh(t) {
   }
 }
 
+// overlay mode: the drifting dust is drawn in front of the 3D footage, softly
+if (OVERLAY) $('stage').insertBefore($('bokeh'), $('hook'));
+
 /* ---------------- per frame ---------------- */
 const apply = (el, e, op, dx, dy, s) => {
   el.style.opacity = op;
@@ -404,6 +412,11 @@ function update(t) {
   const bgA = Math.min(easeOut(prog(t, S.hook.end - .15, .5)), 1 - easeIn(prog(t, S.cta.start - .1, .4)));
   $('bg').style.opacity = bgA;
   if (bgA > 0.001) { drawBokeh(t); $('grid').style.backgroundPosition = `0px ${(t * 14) % 90}px`; }
+  if (OVERLAY) {
+    const da = Math.min(easeOut(prog(t, S.hook.end - .1, .8)), 1 - easeIn(prog(t, S.cta.start - .2, .4)));
+    $('bokeh').style.opacity = .55 * da;
+    if (da > .001) drawBokeh(t);
+  }
 
   // hook words
   hookSpans.forEach((el, i) => {
