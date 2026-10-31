@@ -1086,12 +1086,14 @@ def update_all(t):
 # Benchmark frames: a frame number >= 1,000,000 means "variant (n // 10000) % 100 of base frame n % 10000".
 # Variants only change resolution and samples, so timing and noise can be compared on the same picture.
 VARIANTS = {
-    0: (None, None),     # whatever the job asks for
-    1: (100, 6),
-    2: (75, 8),
-    3: (66, 10),
-    4: (50, 16),
-    5: (75, 12),
+    0: (None, None, True),     # whatever the job asks for
+    1: (100, 6, True),
+    2: (75, 8, True),
+    3: (66, 10, True),
+    4: (50, 16, True),
+    5: (75, 12, True),
+    6: (100, 6, False),        # same noise pattern on every frame
+    7: (100, 6, True),         # a new noise pattern on every frame
 }
 
 
@@ -1167,8 +1169,9 @@ tree.links.new(glare.outputs["Image"], comp.inputs["Image"])
 start = time.time()
 for frame in FRAMES:
     base_frame, variant = split_frame(frame)
-    v_pct, v_spp = VARIANTS.get(variant, (None, None))
+    v_pct, v_spp, v_anim = VARIANTS.get(variant, (None, None, True))
     scene.render.resolution_percentage = v_pct or PCT
+    setp(cy, "use_animated_seed", v_anim)
     if denoise_ok:
         cy.samples = v_spp or SAMPLES
     t = (base_frame - 1) / FPS
