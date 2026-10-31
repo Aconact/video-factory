@@ -1,0 +1,36 @@
+name: fetch-blender
+
+# One-off helper: copies the official Blender 4.2 LTS Linux build into a release of this repository,
+# so that it can be downloaded from github.com into a workspace that cannot reach download.blender.org.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/fetch-blender.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Blender 4.2 LTS and publish it as a release file
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          BASE=https://download.blender.org/release/Blender4.2/
+          FILE=$(curl -fsSL "$BASE" | grep -o 'blender-4\.2\.[0-9]*-linux-x64\.tar\.xz' | sort -V | uniq | tail -n 1)
+          echo "downloading $FILE"
+          curl -fsSL -o "$FILE" "$BASE$FILE"
+          SUM=$(sha256sum "$FILE" | cut -d' ' -f1)
+          ls -la "$FILE"
+          echo "sha256 $SUM"
+          TAG=tools-blender
+          printf 'Official %s from download.blender.org (GPL), copied here so it can be fetched from github.com.\nsha256 %s\n' "$FILE" "$SUM" > notes.md
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release delete "$TAG" --yes --cleanup-tag
+          fi
+          gh release create "$TAG" "$FILE" --target "${{ github.sha }}" --title "Blender 4.2 LTS (Linux x64)" --notes-file notes.md
