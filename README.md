@@ -23,5 +23,20 @@ Finished vertical videos (1080x1920, 30 fps, H.264 + AAC) made from code. Nothin
    puts the eye shot, the 3D world and the text layer together and encodes in one pass (about 22 MB for 57 s).
    `tools/compose.py` does the same for videos whose background is plain HTML frames.
 
+## Working on a scene with a real Blender (fast loop)
+
+The workspace this is built from cannot reach download.blender.org, so the `fetch-blender` workflow copies the official
+Blender 4.2 LTS build into the release `tools-blender`. Download it once, then render previews in seconds:
+
+    mkdir -p ~/studio && cd ~/studio
+    curl -L -o blender.tar.xz https://github.com/Aconact/video-factory/releases/download/tools-blender/blender-4.2.23-linux-x64.tar.xz
+    mkdir blender && tar -xf blender.tar.xz -C blender --strip-components=1
+    cd <repo> && OUT_DIR=~/studio/out RES_PERCENT=30 SAMPLES=16 FRAMES=1,60,120 ~/studio/blender/blender -b -noaudio -P jobs/chip/scene.py
+
+Cycles on the CPU, Workbench and (slowly, with software GL) EEVEE all work. `BORDER=0.1,0.9,0.5,0.8` renders just a region
+of `jobs/chip` for quick noise and detail checks. Heavy final renders still go to GitHub (`jobs/ACTIVE`).
+`jobs/chip` is a modelled hero shot (bevelled geometry, procedural PBR materials, studio lights, Track-To camera with
+rack focus, Bezier-keyed camera and data pulses); `jobs/world` is the flat neon infographic world.
+
 Facts used on screen are written down with their official sources in `videos/<id>/facts.md`.
 Fonts: Inter and JetBrains Mono (SIL Open Font License, see `videos/fonts`).
