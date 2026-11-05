@@ -1,0 +1,50 @@
+{
+  "id": "next-word",
+  "title": "How AI Predicts the Next Word (real run of Qwen2.5-0.5B)",
+  "voice": "af_heart",
+  "speed": 1.08,
+  "lead": 0.1,
+  "tail": 0.26,
+  "scenes": [
+    {
+      "id": "hook",
+      "text": "ChatGPT has no favorite color. So how does it answer?",
+      "say": "Chat G P T has no favorite color. So how does it answer?"
+    },
+    {
+      "id": "tokens",
+      "text": "I ran a small open AI model on the sentence: My favorite color is. First, it cuts the text into tokens, each with an ID number.",
+      "say": "I ran a small open A I model on the sentence: My favorite color is. First, it cuts the text into tokens, each with an I D number."
+    },
+    {
+      "id": "numbers",
+      "text": "Then each token becomes a list of 896 numbers.",
+      "say": "Then each token becomes a list of eight hundred ninety six numbers."
+    },
+    {
+      "id": "layers",
+      "text": "Those numbers flow through 24 layers. In each one, tokens look back at earlier tokens, and the numbers change.",
+      "say": "Those numbers flow through twenty four layers. In each one, tokens look back at earlier tokens, and the numbers change."
+    },
+    {
+      "id": "scores",
+      "text": "At the end, the model scores every token it knows, over 150,000 of them. Blue gets about 20 percent. Red, 10. Green, 7.",
+      "say": "At the end, the model scores every token it knows, over one hundred fifty thousand of them. Blue gets about twenty percent. Red, ten. Green, seven."
+    },
+    {
+      "id": "pick",
+      "text": "It picks one, here blue, adds it to the text, and starts over.",
+      "say": "It picks one, here blue, adds it to the text, and starts over."
+    },
+    {
+      "id": "repeat",
+      "text": "Token after token, that is how every chatbot writes an answer.",
+      "say": "Token after token, that is how every chatbot writes an answer."
+    },
+    {
+      "id": "cta",
+      "text": "No favorite color, just odds. Follow TechPulse Report for AI, explained.",
+      "say": "No favorite color, just odds. Follow Tech Pulse Report for A I, explained."
+    }
+  ]
+}
