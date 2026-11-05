@@ -1,0 +1,37 @@
+name: tokenizer-data
+
+# Splits a few words into tokens with the real Qwen2.5-0.5B tokenizer (used for the "tokens are pieces of words" panel).
+
+on:
+  push:
+    paths:
+      - "tools/tokenizer_data.py"
+      - ".github/workflows/tokenizer-data.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install
+        run: python -m pip install transformers huggingface_hub tokenizers
+      - name: Tokenize
+        run: |
+          mkdir -p out
+          python tools/tokenizer_data.py out 2>&1 | tee out/run.log
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release create "tokens-${{ github.run_number }}" out/tokens.json out/run.log \
+            --target "${{ github.sha }}" --title "tokens-${{ github.run_number }}" \
+            --notes "Real Qwen2.5-0.5B tokenizer output, commit ${{ github.sha }}"
