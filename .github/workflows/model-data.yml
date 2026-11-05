@@ -1,0 +1,50 @@
+name: model-data
+
+# Runs real open language models (Qwen2.5-0.5B, GPT-2) on a few prompts and publishes the numbers
+# (tokens, embeddings, layer states, attention, next-word probabilities, generation steps) as a release.
+# The explainer videos show these numbers, so every figure on screen comes from a real model run.
+
+on:
+  push:
+    paths:
+      - "tools/model_data.py"
+      - ".github/workflows/model-data.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install torch (CPU) and transformers
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install transformers huggingface_hub safetensors numpy
+          python -c "import torch, transformers; print(torch.__version__, transformers.__version__)"
+
+      - name: Run the models
+        run: |
+          mkdir -p out
+          python tools/model_data.py out 2>&1 | tee out/run.log
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          ls -la out
+          gh release create "data-${{ github.run_number }}" out/data.json out/summary.txt out/run.log \
+            --target "${{ github.sha }}" --title "data-${{ github.run_number }}" \
+            --notes "Real model outputs for the explainer videos, from commit ${{ github.sha }}"
