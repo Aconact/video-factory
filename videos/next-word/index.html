@@ -1,0 +1,860 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>next-word</title>
+<style>
+@font-face { font-family: "InterV"; src: url("http://app.local/fonts/Inter.ttf"); font-weight: 100 900; }
+@font-face { font-family: "JBM"; src: url("http://app.local/fonts/JetBrainsMono.ttf"); font-weight: 100 800; }
+
+html, body { margin: 0; padding: 0; background: transparent; }
+#stage { position: relative; width: 1080px; height: 1920px; overflow: hidden; font-family: InterV, sans-serif; color: #F2FBFF; }
+.abs { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; }
+.mono { font-family: JBM, monospace; }
+
+/* ---------- background ---------- */
+#bg { background:
+  radial-gradient(900px 700px at 12% 8%, rgba(0,245,255,.15), transparent 62%),
+  radial-gradient(900px 800px at 92% 94%, rgba(0,255,135,.12), transparent 62%),
+  #04090B; opacity: 0; }
+#grid { background-image:
+  linear-gradient(rgba(0,245,255,.05) 1px, transparent 1px),
+  linear-gradient(90deg, rgba(0,245,255,.05) 1px, transparent 1px);
+  background-size: 90px 90px; }
+#bokeh { position: absolute; left: 0; top: 0; }
+
+/* ---------- HUD + stepper ---------- */
+#hud { font-family: JBM, monospace; font-size: 26px; letter-spacing: .16em; color: rgba(0,245,255,.85); }
+#hud .l { position: absolute; left: 60px; top: 122px; display: flex; align-items: center; gap: 16px; }
+#hud .r { position: absolute; right: 60px; top: 122px; color: rgba(160,190,200,.8); opacity: 0; }
+#dot { width: 14px; height: 14px; border-radius: 50%; background: #00FF87; box-shadow: 0 0 18px #00FF87; }
+#stepper { position: absolute; left: 0; top: 176px; width: 1080px; height: 70px; opacity: 0; }
+.st { position: absolute; top: 0; width: 180px; }
+.st .bar { height: 6px; border-radius: 3px; background: rgba(160,190,200,.18); overflow: hidden; }
+.st .fill { height: 100%; width: 0; border-radius: 3px; background: #00FF87; }
+.st .lb { margin-top: 12px; font-family: JBM, monospace; font-weight: 700; font-size: 22px; letter-spacing: .14em; white-space: nowrap; }
+
+/* ---------- hook ---------- */
+#hookTitle { position: absolute; left: 0; width: 1080px; top: 250px; text-align: center; font-weight: 900; font-size: 84px; line-height: 1.08; letter-spacing: -.025em; text-transform: uppercase; }
+#hookTitle .w, #hookSub .w { display: inline-block; opacity: 0; will-change: transform; }
+#hookTitle .g { color: #00FF87; text-shadow: 0 0 40px rgba(0,255,135,.55); }
+#hookTitle .line { display: block; white-space: nowrap; }
+#hookSub { position: absolute; left: 0; width: 1080px; top: 1500px; text-align: center; font-weight: 700; font-size: 46px; letter-spacing: -.01em; color: rgba(242,251,255,.95); }
+#hookSub .g { color: #00F5FF; }
+#hookTitle, #hookSub { text-shadow: 0 4px 30px rgba(0,0,0,.7); }
+
+/* ---------- chips ---------- */
+.tk { position: absolute; left: 0; top: 0; height: 96px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 64px; letter-spacing: -.02em; white-space: nowrap; color: #F2FBFF; opacity: 0; transform-origin: 0 0; }
+.tk .bx { position: absolute; left: 0; top: 0; right: 0; bottom: 0; border-radius: 24px; box-sizing: border-box; opacity: 0; }
+.tk .tt { position: relative; }
+.tk.slot .tt { color: rgba(190,212,220,.7); }
+.tk.slot .bx { border: 3px dashed rgba(190,212,220,.65); background: rgba(255,255,255,.03); opacity: 1; }
+.ms { position: absolute; font-family: InterV, sans-serif; font-weight: 800; font-size: 64px; letter-spacing: -.02em; white-space: pre; visibility: hidden; left: -9999px; top: 0; }
+.pbar { position: absolute; left: 0; top: 0; height: 9px; border-radius: 5px; background: rgba(160,190,200,.16); opacity: 0; transform-origin: 0 0; }
+.pbar i { display: block; height: 100%; border-radius: 5px; background: linear-gradient(90deg, #00FF87, #00F5FF); box-shadow: 0 0 12px rgba(0,255,135,.5); }
+.plab { position: absolute; left: 0; top: 0; width: 120px; margin-left: -60px; text-align: center; font-family: JBM, monospace; font-weight: 700; font-size: 25px; letter-spacing: .04em; color: rgba(190,212,220,.92); opacity: 0; }
+
+/* ---------- tokens scene ---------- */
+#modelCard { position: absolute; left: 60px; top: 500px; width: 960px; height: 430px; box-sizing: border-box; border-radius: 38px; border: 2px solid rgba(0,245,255,.38);
+  background: linear-gradient(150deg, rgba(0,245,255,.10), rgba(4,9,11,.88) 62%); box-shadow: 0 0 80px rgba(0,245,255,.14); opacity: 0; }
+.tagG { position: absolute; left: 48px; top: 40px; display: flex; align-items: center; gap: 14px; font-family: JBM, monospace; font-weight: 800; font-size: 26px; letter-spacing: .2em; color: #00FF87; }
+.dotg { width: 14px; height: 14px; border-radius: 50%; background: #00FF87; box-shadow: 0 0 16px #00FF87; }
+#mName { position: absolute; left: 48px; top: 100px; font-weight: 900; font-size: 116px; letter-spacing: -.035em; line-height: 1.05; white-space: nowrap; opacity: 0; }
+#mParams { position: absolute; left: 52px; top: 250px; font-family: JBM, monospace; font-size: 34px; color: rgba(190,212,220,.92); white-space: nowrap; opacity: 0; }
+#mParams b { font-size: 56px; font-weight: 800; color: #00F5FF; letter-spacing: .02em; margin-right: 12px; text-shadow: 0 0 26px rgba(0,245,255,.4); }
+#mLic { position: absolute; left: 52px; top: 350px; font-family: JBM, monospace; font-weight: 700; font-size: 27px; letter-spacing: .14em; color: rgba(190,212,220,.9); opacity: 0; }
+#promptBox { position: absolute; left: 60px; top: 490px; width: 960px; height: 220px; box-sizing: border-box; border-radius: 34px; border: 2px solid rgba(0,245,255,.3); background: rgba(255,255,255,.04); opacity: 0; }
+.plabel { position: absolute; left: 40px; top: 22px; font-family: JBM, monospace; font-weight: 800; font-size: 22px; letter-spacing: .2em; color: #00F5FF; }
+#caret { position: absolute; width: 6px; height: 78px; margin-left: -3px; background: #00FF87; border-radius: 3px; box-shadow: 0 0 14px #00FF87; opacity: 0; }
+#cutLine { position: absolute; top: 500px; width: 4px; height: 200px; margin-left: -2px; background: #00FF87; border-radius: 2px; box-shadow: 0 0 26px 6px rgba(0,255,135,.7); opacity: 0; }
+.idc { position: absolute; width: 200px; margin-left: -100px; top: 668px; text-align: center; opacity: 0; }
+.idc small { display: block; font-family: JBM, monospace; font-weight: 700; font-size: 21px; letter-spacing: .22em; color: rgba(160,190,200,.85); }
+.idc b { display: block; font-family: JBM, monospace; font-weight: 800; font-size: 52px; letter-spacing: .02em; color: #00F5FF; text-shadow: 0 0 22px rgba(0,245,255,.45); margin-top: 4px; }
+#cnt { position: absolute; left: 0; top: 790px; width: 1080px; height: 80px; opacity: 0; }
+#cnt .ln { position: absolute; top: 0; height: 4px; border-radius: 2px; background: linear-gradient(90deg, rgba(0,255,135,0), #00FF87 12%, #00FF87 88%, rgba(0,255,135,0)); }
+#cnt .tx { position: absolute; left: 0; width: 1080px; top: 18px; text-align: center; font-family: JBM, monospace; font-weight: 800; font-size: 32px; letter-spacing: .2em; color: #00FF87; }
+#pieces { position: absolute; left: 60px; width: 960px; top: 910px; text-align: center; opacity: 0; }
+#pieces .lab { font-family: JBM, monospace; font-weight: 700; font-size: 22px; letter-spacing: .12em; color: rgba(190,212,220,.9); }
+#pieces .row { margin-top: 18px; display: flex; justify-content: center; align-items: center; gap: 14px; font-weight: 800; font-size: 48px; }
+#pieces .pc { border: 2px solid rgba(0,245,255,.65); border-radius: 14px; padding: 4px 16px; background: rgba(0,245,255,.08); font-size: 44px; }
+#pieces .ar { color: #00FF87; font-weight: 900; }
+
+/* ---------- numbers scene ---------- */
+.tile { position: absolute; top: 450px; width: 224px; height: 196px; opacity: 0; }
+.tile canvas { display: block; border-radius: 6px; }
+.vals { position: absolute; top: 668px; width: 224px; text-align: center; font-family: JBM, monospace; font-weight: 700; font-size: 27px; line-height: 37px; white-space: pre; opacity: 0; }
+.vals .p { color: #00FF87; } .vals .n { color: #3DB8FF; } .vals .d { color: rgba(160,190,200,.7); }
+#n896 { position: absolute; left: 0; width: 1080px; top: 916px; text-align: center; opacity: 0; }
+#n896 b { display: block; font-weight: 900; font-size: 230px; line-height: 1; letter-spacing: -.05em; color: #00FF87; text-shadow: 0 0 70px rgba(0,255,135,.45); }
+#n896 span { display: block; margin-top: 6px; font-family: JBM, monospace; font-weight: 800; font-size: 30px; letter-spacing: .2em; color: #00F5FF; }
+#n896 small { display: block; margin-top: 16px; font-family: JBM, monospace; font-weight: 600; font-size: 22px; letter-spacing: .12em; color: rgba(190,212,220,.85); }
+
+/* ---------- layers scene ---------- */
+.wrap { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; opacity: 0; }
+#bigTile { position: absolute; left: 300px; top: 600px; width: 480px; height: 420px; border-radius: 8px; outline: 2px solid rgba(0,245,255,.4); outline-offset: 8px; box-shadow: 0 0 70px rgba(0,245,255,.12); opacity: 0; }
+#bigTile canvas { display: block; border-radius: 6px; }
+.lc { position: absolute; left: 232px; width: 40px; height: 14px; border-radius: 4px; background: rgba(160,190,200,.15); }
+#lyBlock { position: absolute; left: 806px; top: 626px; width: 214px; }
+#lyBlock .k { font-family: JBM, monospace; font-weight: 800; font-size: 24px; letter-spacing: .2em; color: #00F5FF; }
+#lyBlock .n { font-weight: 900; font-size: 150px; line-height: 1; letter-spacing: -.05em; color: #00FF87; text-shadow: 0 0 40px rgba(0,255,135,.4); margin-top: 6px; font-variant-numeric: tabular-nums; }
+#lyBlock .o { font-family: JBM, monospace; font-weight: 700; font-size: 34px; letter-spacing: .1em; color: rgba(190,212,220,.9); margin-top: 2px; }
+#lyNote { position: absolute; left: 0; width: 1080px; top: 1056px; text-align: center; font-family: JBM, monospace; font-weight: 700; font-size: 23px; letter-spacing: .1em; color: rgba(190,212,220,.9); }
+#attnTag { position: absolute; left: 0; width: 1080px; top: 482px; text-align: center; opacity: 0; }
+#attnTag .a { font-family: JBM, monospace; font-weight: 700; font-size: 22px; letter-spacing: .14em; color: rgba(190,212,220,.9); }
+#attnTag .b { margin-top: 8px; font-weight: 800; font-size: 40px; letter-spacing: -.01em; }
+#attnTag .b em { font-style: normal; color: #00FF87; }
+.attp { position: absolute; width: 120px; margin-left: -60px; text-align: center; font-family: JBM, monospace; font-weight: 700; font-size: 26px; color: rgba(190,212,220,.9); opacity: 0; }
+.attp.big { font-family: InterV, sans-serif; font-weight: 900; font-size: 44px; color: #00FF87; text-shadow: 0 0 22px rgba(0,255,135,.5); }
+
+/* ---------- scores scene ---------- */
+#cntBig { position: absolute; left: 0; width: 1080px; top: 452px; text-align: center; font-weight: 900; font-size: 132px; line-height: 1; letter-spacing: -.04em; color: #00FF87; text-shadow: 0 0 60px rgba(0,255,135,.4); font-variant-numeric: tabular-nums; opacity: 0; }
+#cntLab { position: absolute; left: 0; width: 1080px; top: 592px; text-align: center; font-family: JBM, monospace; font-weight: 800; font-size: 26px; letter-spacing: .2em; color: #00F5FF; opacity: 0; }
+#field { position: absolute; left: 60px; top: 650px; width: 960px; height: 539px; image-rendering: pixelated; border-radius: 8px; opacity: 0; }
+#probHead { position: absolute; left: 0; width: 1080px; top: 520px; text-align: center; font-family: JBM, monospace; font-weight: 800; font-size: 26px; letter-spacing: .2em; color: #00F5FF; opacity: 0; }
+.brow { position: absolute; left: 60px; width: 960px; height: 80px; opacity: 0; }
+.brow .rl { position: absolute; left: 6px; top: 10px; width: 200px; font-weight: 800; font-size: 50px; letter-spacing: -.02em; white-space: nowrap; }
+.brow .rb { position: absolute; left: 220px; top: 12px; height: 56px; width: 0; border-radius: 14px; }
+.brow .rv { position: absolute; top: 12px; font-family: JBM, monospace; font-weight: 800; font-size: 40px; white-space: nowrap; transform-origin: 0 50%; }
+#sel { position: absolute; left: 48px; width: 984px; height: 96px; box-sizing: border-box; border: 3px solid #00FF87; border-radius: 24px; box-shadow: 0 0 36px rgba(0,255,135,.55), inset 0 0 28px rgba(0,255,135,.12); opacity: 0; }
+#sumNote { position: absolute; left: 0; width: 1080px; top: 1176px; text-align: center; font-family: JBM, monospace; font-weight: 700; font-size: 23px; letter-spacing: .1em; color: rgba(190,212,220,.9); opacity: 0; }
+
+/* ---------- pick + repeat ---------- */
+#loopTxt { position: absolute; left: 0; width: 1080px; top: 780px; text-align: center; font-weight: 900; font-size: 74px; letter-spacing: -.02em; color: #F2FBFF; opacity: 0; }
+#loopSub { position: absolute; left: 0; width: 1080px; top: 1010px; text-align: center; font-family: JBM, monospace; font-weight: 700; font-size: 24px; letter-spacing: .14em; color: rgba(190,212,220,.92); opacity: 0; }
+#legend { position: absolute; left: 60px; width: 960px; text-align: center; font-family: JBM, monospace; font-weight: 700; font-size: 23px; letter-spacing: .1em; color: rgba(190,212,220,.9); opacity: 0; }
+#caretF { position: absolute; width: 7px; height: 70px; margin-left: -3px; margin-top: -35px; background: #00FF87; border-radius: 3px; box-shadow: 0 0 14px #00FF87; opacity: 0; }
+
+/* ---------- CTA ---------- */
+#cta .t { position: absolute; left: 0; width: 1080px; text-align: center; opacity: 0; text-shadow: 0 4px 30px rgba(0,0,0,.75); white-space: nowrap; }
+#ctaA1 { top: 244px; font-weight: 900; font-size: 74px; letter-spacing: -.03em; color: #F2FBFF; }
+#ctaA2 { top: 336px; font-weight: 900; font-size: 134px; letter-spacing: -.04em; color: #00FF87; text-shadow: 0 0 56px rgba(0,255,135,.55), 0 4px 30px rgba(0,0,0,.75); }
+#ctaFollow { top: 226px; font-weight: 900; font-size: 112px; letter-spacing: -.03em; color: #00FF87; text-shadow: 0 0 50px rgba(0,255,135,.5), 0 4px 30px rgba(0,0,0,.7); }
+#ctaBrand { top: 352px; font-weight: 900; font-size: 66px; letter-spacing: -.01em; }
+#ctaBrand b { color: #00FF87; font-weight: 900; }
+#ctaTag { top: 440px; font-family: JBM, monospace; font-weight: 700; font-size: 36px; letter-spacing: .18em; color: #00F5FF; }
+
+/* ---------- captions ---------- */
+#caps { position: absolute; left: 70px; width: 940px; top: 1300px; height: 200px; display: flex; align-items: center; justify-content: center; }
+.cap { position: absolute; left: 0; width: 940px; top: 0; height: 200px; display: none; align-items: center; justify-content: center; text-align: center; flex-wrap: wrap; align-content: center; }
+.cap .cw { display: inline-block; margin: 0 .2em; font-weight: 900; font-size: 68px; line-height: 1.12; letter-spacing: -.02em; color: #fff;
+  -webkit-text-stroke: 13px rgba(2,10,14,.92); paint-order: stroke fill; transform-origin: 50% 70%; }
+#src { position: absolute; left: 40px; width: 1000px; top: 1548px; text-align: center; font-family: JBM, monospace; font-weight: 600; font-size: 22px; letter-spacing: .05em; color: rgba(190,212,220,.8); opacity: 0; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="bg" class="abs"><div id="grid" class="abs"></div><canvas id="bokeh" width="1080" height="1920"></canvas></div>
+
+  <div id="scene" class="abs">
+    <!-- tokens -->
+    <div id="modelCard">
+      <div class="tagG"><span class="dotg"></span><span>REAL MODEL RUN</span></div>
+      <div id="mName">Qwen2.5-0.5B</div>
+      <div id="mParams"><b id="mParamsN">0</b><span>parameters</span></div>
+      <div id="mLic">OPEN MODEL &middot; APACHE-2.0 LICENSE</div>
+    </div>
+    <div id="promptBox"><div class="plabel">PROMPT</div></div>
+    <div id="caret"></div>
+    <div id="cutLine"></div>
+    <div id="ids"></div>
+    <div id="cnt"><div class="ln" id="cntLn"></div><div class="tx">4 TOKENS</div></div>
+    <div id="pieces"></div>
+
+    <!-- numbers -->
+    <div id="tiles"></div>
+    <div id="n896"><b id="n896n">0</b><span>NUMBERS FOR EACH TOKEN</span><small>1 SQUARE = 1 NUMBER &middot; REAL VALUES</small></div>
+
+    <!-- layers -->
+    <div id="layersWrap" class="wrap">
+      <div id="ladder"></div>
+      <div id="lyBlock"><div class="k">LAYER</div><div class="n" id="lyN">00</div><div class="o">/ 24</div></div>
+      <div id="lyNote">THE LAST TOKEN &ldquo;is&rdquo; &middot; REAL NUMBERS AFTER EACH LAYER</div>
+    </div>
+    <div id="bigTile"><canvas id="bigCv" width="480" height="420"></canvas></div>
+    <div id="attnTag"><div class="a">ATTENTION &middot; LAYER 9 &middot; 1 OF 336 HEADS</div><div class="b"><em>&ldquo;is&rdquo;</em> looks back at <em>&ldquo;color&rdquo;</em></div></div>
+    <svg id="arcs" class="abs" viewBox="0 0 1080 1920" style="opacity:0"></svg>
+    <div id="attps"></div>
+
+    <!-- scores -->
+    <div id="scoresWrap" class="wrap">
+      <div id="cntBig">0</div>
+      <div id="cntLab">TOKENS SCORED</div>
+      <canvas id="field" width="520" height="292"></canvas>
+      <div id="probHead">NEXT TOKEN &middot; PROBABILITY</div>
+      <div id="bars"></div>
+      <div id="sel"></div>
+      <div id="sumNote"></div>
+    </div>
+
+    <!-- pick / loop -->
+    <svg id="loop" class="abs" viewBox="0 0 1080 1920" style="opacity:0"></svg>
+    <div id="loopTxt">AGAIN</div>
+    <div id="loopSub">SAME FIVE STEPS &middot; ONE MORE TOKEN</div>
+
+    <div id="chipLayer"></div>
+    <div id="legend">LINE UNDER A TOKEN = HOW LIKELY THE MODEL THOUGHT IT WAS</div>
+    <div id="caretF"></div>
+  </div>
+
+  <div id="hook" class="abs"><div id="hookTitle"></div><div id="hookSub"></div></div>
+
+  <div id="cta" class="abs">
+    <div id="ctaA1" class="t">NO FAVORITE COLOR.</div>
+    <div id="ctaA2" class="t">JUST ODDS.</div>
+    <div id="ctaFollow" class="t">FOLLOW</div>
+    <div id="ctaBrand" class="t">TECHPULSE <b>REPORT</b></div>
+    <div id="ctaTag" class="t">AI, EXPLAINED</div>
+  </div>
+
+  <div id="hud" class="abs"><div class="l"><span id="dot"></span><span>TECHPULSE REPORT</span></div><div class="r" id="hudR">QWEN2.5-0.5B &middot; REAL RUN</div></div>
+  <div id="stepper"></div>
+
+  <div id="caps"></div>
+  <div id="src"></div>
+</div>
+
+<script>
+(async () => {
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const prog = (t, a, d) => clamp((t - a) / d);
+const easeOut = x => 1 - Math.pow(1 - x, 3);
+const easeIn = x => x * x * x;
+const easeInOut = x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
+const easeOutBack = x => { const c1 = 1.70158, c3 = c1 + 1; return 1 + c3 * Math.pow(x - 1, 3) + c1 * Math.pow(x - 1, 2); };
+const lerp = (a, b, t) => a + (b - a) * t;
+const nz = s => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+const $ = id => document.getElementById(id);
+const fmtInt = n => Math.round(n).toLocaleString('en-US');
+const fmtVal = v => (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(4);
+function rnd(seed) { let a = seed; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+const TL = await (await fetch('http://app.local/timeline.json')).json();
+const D = await (await fetch('http://app.local/data.json')).json();
+await document.fonts.load('900 80px InterV');
+await document.fonts.load('800 64px InterV');
+await document.fonts.load('700 30px JBM');
+await document.fonts.ready;
+
+const S = {};
+for (const sc of TL.scenes) {
+  S[sc.id] = sc;
+  let prev = -1;                       // starts must grow, so no word flashes by
+  for (const w of sc.words) { if (w.s < prev + 0.09) w.s = prev + 0.09; prev = w.s; }
+}
+const DUR = TL.duration;
+function cue(id, key, nth = 0) {
+  const k = nz(key); let n = 0;
+  for (const w of S[id].words) if (nz(w.w).startsWith(k)) { if (n++ === nth) return w.s; }
+  console.log('cue not found', id, key);
+  return S[id].start;
+}
+const win = (t, a, b, din = .3, dout = .3) => easeOut(prog(t, a, din)) * (1 - easeIn(prog(t, b - dout, dout)));
+
+/* ---------------- real data ---------------- */
+const EMB = D.embedding;                                   // 4 tokens x 896 numbers (first layer input)
+const LAY = D.layers_last;                                 // 25 x 896: the last token after every layer
+const LV = l => (l === 0 ? EMB[3] : LAY[l]);
+const pctile = (arr, p) => { const a = arr.map(Math.abs).sort((x, y) => x - y); return a[Math.min(a.length - 1, Math.floor(p * a.length))]; };
+const QL = Array.from({ length: 25 }, (_, l) => pctile(LV(l), .97));
+const QE = EMB.map(v => pctile(v, .97));
+const ATT = D.attn_last[8][7];                             // layer 9, head index 7: weights of the last token over [My, favorite, color, is]
+const PT = D.tokens.map(t => t.text);
+const GT = D.greedy.steps.map(s => s.chosen);
+const ALL = PT.concat(GT.map(g => g.text));                // 14 tokens: prompt + the real greedy continuation
+const SHOW = ALL.map(s => s.trim());
+const PROB = [null, null, null, null].concat(GT.map(g => g.p));
+const IDS = D.tokens.map(t => t.id);
+const TOP = D.next.top.slice(0, 6);
+const VOCAB = D.tokenizer_vocab;                           // 151,665
+
+/* ---------------- schedule (all from the voice) ---------------- */
+const T = {
+  nameCue: cue('tokens', 'small'), licCue: cue('tokens', 'open'), paramCue: cue('tokens', 'model'),
+  promptIn: cue('tokens', 'sentence'),
+  wordCue: ['my', 'favorite', 'color', 'is'].map(k => cue('tokens', k)),
+  cut: cue('tokens', 'cuts'), tokensWord: cue('tokens', 'tokens'), idCue: cue('tokens', 'an'),
+  numBecomes: cue('numbers', 'becomes'), numList: cue('numbers', 'list'), num896: cue('numbers', '896'),
+  lyFlow: cue('layers', 'flow'), ly24: cue('layers', '24'), lyTokens: cue('layers', 'tokens'), lyLook: cue('layers', 'look'),
+  lyEarlier: cue('layers', 'earlier'), lyAnd: cue('layers', 'and'), lyChange: cue('layers', 'change'),
+  scEvery: cue('scores', 'every'), sc150: cue('scores', '150000'), scThem: cue('scores', 'them'),
+  scBlue: cue('scores', 'blue'), sc20: cue('scores', '20'), scRed: cue('scores', 'red'), sc10: cue('scores', '10'),
+  scGreen: cue('scores', 'green'), sc7: cue('scores', '7'),
+  pkPicks: cue('pick', 'picks'), pkBlue: cue('pick', 'blue'), pkAdds: cue('pick', 'adds'), pkStarts: cue('pick', 'starts'),
+  rpToken: cue('repeat', 'token'), rpThat: cue('repeat', 'that'),
+  ctaNo: cue('cta', 'no'), ctaJust: cue('cta', 'just'), ctaFollow: cue('cta', 'follow'), ctaBrand: cue('cta', 'techpulse'), ctaAI: cue('cta', 'ai'),
+};
+T.rpFirst = S.repeat.start + .42;
+
+/* ---------------- hook ---------------- */
+const hw = S.hook.words;
+const mk = (w, g) => `<span class="w${g ? ' g' : ''}">${w}</span>`;
+$('hookTitle').innerHTML =
+  `<span class="line">${mk(hw[0].w)} ${mk(hw[1].w)} ${mk(hw[2].w, 1)}</span>` +
+  `<span class="line">${mk(hw[3].w, 1)} ${mk(hw[4].w, 1)}</span>`;
+$('hookSub').innerHTML = hw.slice(5).map((w, i) => `<span class="w${i >= 3 ? ' g' : ''}">${w.w}</span>`).join(' ');
+const hookSpans = [...document.querySelectorAll('#hookTitle .w')].concat([...document.querySelectorAll('#hookSub .w')]);
+const hookT = hw.map(w => w.s);
+
+/* ---------------- stepper ---------------- */
+const STEPS = ['TOKENS', 'NUMBERS', 'LAYERS', 'SCORES', 'PICK'];
+const SBOUND = [S.tokens.start, S.numbers.start, S.layers.start, S.scores.start, S.pick.start, S.pick.end];
+const stepEls = STEPS.map((name, i) => {
+  const d = document.createElement('div'); d.className = 'st'; d.style.left = (60 + i * 195) + 'px';
+  d.innerHTML = `<div class="bar"><div class="fill"></div></div><div class="lb">${String(i + 1).padStart(2, '0')} ${name}</div>`;
+  $('stepper').appendChild(d);
+  return { fill: d.querySelector('.fill'), lb: d.querySelector('.lb') };
+});
+
+/* ---------------- chips ---------------- */
+const H = 96, PADX = 28, GAPC = 18;
+const meas = document.createElement('span'); meas.className = 'ms'; document.body.appendChild(meas);
+const mw = s => { meas.textContent = s; return meas.getBoundingClientRect().width; };
+const TW = SHOW.map(mw);
+const SPW = mw('a a') - mw('aa');
+const WC = TW.map(w => w + 2 * PADX);
+const chipLayer = $('chipLayer');
+const tk = [], bx = [], tt = [];
+const mkChip = (txt, cls) => {
+  const el = document.createElement('div'); el.className = 'tk' + (cls ? ' ' + cls : '');
+  el.innerHTML = `<i class="bx"></i><span class="tt">${txt}</span>`;
+  chipLayer.appendChild(el);
+  return el;
+};
+ALL.forEach((_, i) => {
+  const el = mkChip(SHOW[i]);
+  const gen = i >= 4;
+  el.style.setProperty('--rgb', gen ? '0,255,135' : '0,245,255');
+  const b = el.querySelector('.bx'); b.style.border = '3px solid rgba(var(--rgb),.85)'; b.style.background = 'rgba(var(--rgb),.09)'; b.style.boxShadow = '0 0 28px rgba(var(--rgb),.22)';
+  tk.push(el); bx.push(b); tt.push(el.querySelector('.tt'));
+});
+const slotA = mkChip('?', 'slot'), slotB = mkChip('?', 'slot');
+// probability underlines for the generated tokens
+const pbar = [], plab = [];
+for (let i = 4; i < ALL.length; i++) {
+  const b = document.createElement('div'); b.className = 'pbar'; b.innerHTML = '<i></i>'; chipLayer.appendChild(b); pbar[i] = b;
+  const l = document.createElement('div'); l.className = 'plab'; l.textContent = Math.round(PROB[i] * 100) + '%'; chipLayer.appendChild(l); plab[i] = l;
+}
+
+// layout modes
+const CYP = 600, CYS = 380, SM = .7, GM = 16, SF = .85, GF = 16;
+const sum = a => a.reduce((x, y) => x + y, 0);
+let xx = 540 - (sum(TW.slice(0, 4)) + 3 * SPW) / 2; const PCX = [];
+for (let i = 0; i < 4; i++) { PCX.push(xx + TW[i] / 2); xx += TW[i] + SPW; }
+xx = 540 - (sum(WC.slice(0, 4)) + 3 * GAPC) / 2; const CCX = [];
+for (let i = 0; i < 4; i++) { CCX.push(xx + WC[i] / 2); xx += WC[i] + GAPC; }
+const TCX = [180, 420, 660, 900];
+const stripLayout = n => { const ws = []; for (let i = 0; i < n; i++) ws.push(WC[i] * SM); let x = 540 - (sum(ws) + (n - 1) * GM) / 2; return ws.map(w => { const c = x + w / 2; x += w + GM; return c; }); };
+const M4 = stripLayout(4), M5 = stripLayout(5), M6 = stripLayout(6);
+const g5of = t => easeInOut(prog(t, S.scores.start + .3, .5));
+const g6of = t => easeInOut(prog(t, T.pkAdds + .7, .45));
+const stripCX = (i, t) => {
+  const g5 = g5of(t), g6 = g6of(t);
+  const a = i < 4 ? lerp(M4[i], M5[i], g5) : M5[i];
+  return lerp(a, M6[i], g6);
+};
+const FPOS = []; let fx = 0, fy = 0; const FY0 = 500, FROW = 175, FW = 960;
+for (let i = 0; i < ALL.length; i++) {
+  const w = WC[i] * SF;
+  if (fx + w > FW && fx > 0) { fx = 0; fy += FROW; }
+  FPOS.push({ cx: 60 + fx + w / 2, cy: FY0 + fy + H * SF / 2, row: fy / FROW });
+  fx += w + GF;
+}
+const FROWS = FPOS[FPOS.length - 1].row + 1;
+$('legend').style.top = (FY0 + FROWS * FROW + 6) + 'px';
+const BLUE_X0 = 66 + mw('blue') * .72 / 2 + 4;
+const rowTop = i => 610 + i * 88;
+const rowCY = i => rowTop(i) + 40;
+
+/* ---------------- tiles ---------------- */
+const POS = [0, 255, 135], NEG = [0, 175, 255], BGC = [7, 14, 18];
+function drawTile(ctx, vals, q, pitch, cell, rows) {
+  ctx.clearRect(0, 0, 32 * pitch, 28 * pitch);
+  const full = Math.min(28, Math.ceil(rows));
+  for (let r = 0; r < full; r++) {
+    const ra = clamp(rows - r);
+    for (let c = 0; c < 32; c++) {
+      const v = vals[r * 32 + c], tq = clamp(v / q, -1, 1), a = Math.pow(Math.abs(tq), .72), col = tq >= 0 ? POS : NEG;
+      ctx.fillStyle = `rgba(${(BGC[0] + (col[0] - BGC[0]) * a) | 0},${(BGC[1] + (col[1] - BGC[1]) * a) | 0},${(BGC[2] + (col[2] - BGC[2]) * a) | 0},${ra})`;
+      ctx.fillRect(c * pitch, r * pitch, cell, cell);
+    }
+  }
+  if (rows > 0 && rows < 28) { ctx.fillStyle = 'rgba(190,255,235,.85)'; ctx.fillRect(0, rows * pitch - 2, 32 * pitch, 3); }
+}
+const tileEl = [], tileCtx = [], valsEl = [];
+for (let i = 0; i < 4; i++) {
+  const d = document.createElement('div'); d.className = 'tile'; d.style.left = (TCX[i] - 112) + 'px';
+  const cv = document.createElement('canvas'); cv.width = 224; cv.height = 196; d.appendChild(cv); $('tiles').appendChild(d);
+  tileEl.push(d); tileCtx.push(cv.getContext('2d'));
+  const v = document.createElement('div'); v.className = 'vals'; v.style.left = (TCX[i] - 112) + 'px';
+  v.innerHTML = EMB[i].slice(0, 5).map(x => `<span class="${x >= 0 ? 'p' : 'n'}">${fmtVal(x)}</span>`).join('\n') + '\n<span class="d">⋮</span>';
+  $('tiles').appendChild(v); valsEl.push(v);
+}
+const bigCtx = $('bigCv').getContext('2d');
+function layerVals(pos) {
+  const l = Math.min(24, Math.floor(pos)), f = pos - l;
+  if (f < 1e-3 || l >= 24) return [LV(l), QL[l]];
+  const a = LV(l), b = LV(l + 1), out = new Array(896);
+  for (let i = 0; i < 896; i++) out[i] = a[i] + (b[i] - a[i]) * f;
+  return [out, lerp(QL[l], QL[l + 1], f)];
+}
+const stepFn = x => { const f = Math.floor(x), r = x - f; return f + easeInOut(clamp((r - .5) / .5)); };
+const L1 = [S.layers.start + .63, S.layers.start + 3.13], L2 = [S.layers.start + 3.13, T.lyAnd], L3 = [T.lyAnd + .03, T.lyAnd + 1.33];
+function layerPos(t) {
+  if (t < L1[0]) return 0;
+  if (t < L1[1]) return stepFn(9 * (t - L1[0]) / (L1[1] - L1[0]));
+  if (t < L3[0]) return 9;
+  if (t < L3[1]) return stepFn(9 + 15 * (t - L3[0]) / (L3[1] - L3[0]));
+  return 24;
+}
+const ladder = [];
+for (let k = 1; k <= 24; k++) { const d = document.createElement('div'); d.className = 'lc'; d.style.top = (1006 - k * 17.5 + 3.5 - 14 + 14) + 'px'; $('ladder').appendChild(d); ladder.push(d); }
+// shift so that cell 1 sits on the tile's bottom edge and cell 24 on its top edge
+ladder.forEach((d, i) => { d.style.top = (1006 - (i + 1) * 17.5) + 'px'; });
+
+/* ---------------- attention arcs ---------------- */
+const arcsSvg = $('arcs');
+const ax3 = M4[3], ax2 = M4[2], ayTop = CYS - H * SM / 2 - 4;
+const apex = 66;
+arcsSvg.innerHTML = `<path id="arcPath" pathLength="100" d="M ${ax3} ${ayTop} Q ${(ax3 + ax2) / 2} ${ayTop - apex * 2} ${ax2} ${ayTop}" fill="none" stroke="#00FF87" stroke-width="9" stroke-linecap="round" stroke-dasharray="100" stroke-dashoffset="100" style="filter:drop-shadow(0 0 10px rgba(0,255,135,.7))"/>` +
+  `<circle id="arcDot" cx="${ax3}" cy="${ayTop}" r="9" fill="#00FF87"/><path id="arcHead" d="M ${ax2 - 14} ${ayTop - 16} L ${ax2} ${ayTop + 4} L ${ax2 + 14} ${ayTop - 16} Z" fill="#00FF87"/>`;
+const attps = [];
+M4.forEach((x, i) => {
+  const d = document.createElement('div'); d.className = 'attp' + (i === 2 ? ' big' : ''); d.style.left = x + 'px'; d.style.top = (CYS + H * SM / 2 + (i === 2 ? 6 : 14)) + 'px';
+  d.textContent = Math.round(ATT[i] * 100) + '%'; $('attps').appendChild(d); attps.push(d);
+});
+
+/* ---------------- scores: vocabulary field + bars ---------------- */
+const FC = 520, FR = 292;
+const off = document.createElement('canvas'); off.width = FC; off.height = FR;
+{
+  const c = off.getContext('2d'); const R = rnd(7);
+  const img = c.createImageData(FC, FR);
+  for (let n = 0; n < FC * FR; n++) {
+    const on = n < VOCAB;
+    const b = on ? Math.pow(R(), 2.6) : 0, k = R();
+    const o = n * 4;
+    img.data[o] = on ? 10 + 30 * k * b : 0; img.data[o + 1] = on ? 70 + 185 * b : 0; img.data[o + 2] = on ? 90 + 150 * (1 - k) * b : 0; img.data[o + 3] = on ? 255 : 0;
+  }
+  c.putImageData(img, 0, 0);
+  // the 64 tokens above 0.1 % glow; the six we name get their own colour (positions are only illustrative)
+  for (let n = 0; n < 64; n++) { c.fillStyle = 'rgba(190,255,235,.9)'; c.fillRect(Math.floor(R() * FC), Math.floor(R() * FR * .96), 2, 2); }
+}
+const BCOL = { blue: '#3D8BFF', red: '#FF4D5E', green: '#00FF87', purple: '#A66BFF', pink: '#FF6EC7', yellow: '#FFD84A' };
+{
+  const c = off.getContext('2d'); const R = rnd(31);
+  TOP.forEach((tp, i) => { c.fillStyle = BCOL[tp.text.trim()]; c.fillRect(30 + Math.floor(R() * (FC - 60)), 20 + Math.floor(R() * (FR - 60)), 5, 5); });
+}
+const fctx = $('field').getContext('2d');
+const BAR_MAX = 480, PMAX = TOP[0].p;
+const BT = [T.scBlue, T.scRed, T.scGreen, T.scGreen + .55, T.scGreen + .7, T.scGreen + .85];
+const barRows = TOP.map((tp, i) => {
+  const name = tp.text.trim();
+  const d = document.createElement('div'); d.className = 'brow'; d.style.top = rowTop(i) + 'px';
+  d.innerHTML = `<div class="rl">${name}</div><div class="rb" style="background:${BCOL[name]};box-shadow:0 0 26px ${BCOL[name]}77"></div><div class="rv" style="color:${BCOL[name]}">${(tp.p * 100).toFixed(2)}%</div>`;
+  $('bars').appendChild(d);
+  return { el: d, rl: d.querySelector('.rl'), rb: d.querySelector('.rb'), rv: d.querySelector('.rv'), w: BAR_MAX * tp.p / PMAX };
+});
+$('sumNote').textContent = `6 OF ${fmtInt(VOCAB)} TOKENS SHOWN · THEY HOLD ${(sum(TOP.map(x => x.p)) * 100).toFixed(0)}% OF ALL THE PROBABILITY`;
+const HOPS = [[4, T.pkPicks + .06], [2, T.pkPicks + .28], [1, T.pkPicks + .5], [0, T.pkPicks + .72]];
+
+/* ---------------- loop ring ---------------- */
+$('loop').innerHTML = `<circle cx="540" cy="860" r="150" fill="none" stroke="rgba(0,245,255,.16)" stroke-width="16"/>` +
+  `<circle id="loopArc" cx="540" cy="860" r="150" fill="none" stroke="#00FF87" stroke-width="16" stroke-linecap="round" pathLength="100" stroke-dasharray="100" stroke-dashoffset="100" transform="rotate(-90 540 860)" style="filter:drop-shadow(0 0 12px rgba(0,255,135,.6))"/>` +
+  `<path id="loopHead" d="M -20 -22 L 8 0 L -20 22 Z" fill="#00FF87" transform="translate(540 710)"/>`;
+
+/* ---------------- model data panels ---------------- */
+const idEls = IDS.map((id, i) => { const d = document.createElement('div'); d.className = 'idc'; d.style.left = CCX[i] + 'px'; d.innerHTML = `<small>ID</small><b>${id}</b>`; $('ids').appendChild(d); return d; });
+const cntLn = $('cntLn'); cntLn.style.left = (CCX[0] - WC[0] / 2) + 'px'; cntLn.style.width = (CCX[3] + WC[3] / 2 - (CCX[0] - WC[0] / 2)) + 'px';
+const pcs = D.tokenizer.ChatGPT;
+$('pieces').innerHTML = `<div class="lab">TOKENS CAN BE PIECES OF WORDS &middot; REAL SPLIT</div><div class="row"><span>ChatGPT</span><span class="ar">→</span>${pcs.map(p => `<span class="pc">${p.text}</span>`).join('')}</div>`;
+
+/* ---------------- sound cues (read by tools/make_audio.py) ---------------- */
+const CUES = [];
+const C = (t, k, id, n) => CUES.push(n === undefined ? { t, k, id } : { t, k, id, n });
+for (const id of ['tokens', 'numbers', 'layers', 'scores', 'pick', 'repeat']) C(S[id].start, 'whoosh', id);
+C(S.cta.start, 'whoosh', 'cta');
+hookT.slice(0, 5).forEach((t, i) => C(t, 'hook', 'h' + i, i));
+C(T.nameCue, 'pop', 'name'); C(T.licCue, 'tick', 'lic'); C(T.paramCue - .1, 'pop', 'params'); C(T.promptIn, 'pop', 'prompt');
+T.wordCue.forEach((t, i) => C(t, 'tick', 'type' + i));
+C(T.cut, 'row', 'cut'); for (let i = 0; i < 4; i++) C(T.cut + .12 + .13 * i, 'pop', 'sep' + i);
+for (let i = 0; i < 4; i++) C(T.idCue + .12 * i, 'tick', 'id' + i);
+C(T.tokensWord + .15, 'tick', 'pieces'); C(T.idCue + .6, 'pop', 'count');
+for (let i = 0; i < 4; i++) { C(T.numBecomes + i * .13, 'row', 'tile' + i); C(T.numList + i * .1, 'tick', 'vals' + i); }
+C(T.num896, 'impact', 'n896');
+C(S.layers.start + .1, 'pop', 'focus');
+for (let j = 0; j < 9; j++) C(L1[0] + (j + .75) * (L1[1] - L1[0]) / 9, 'tick', 'ls' + j);
+C(T.lyLook, 'pop', 'arc'); C(T.lyEarlier - .1, 'stamp', 'att');
+for (let j = 0; j < 15; j += 2) C(L3[0] + (j + .75) * (L3[1] - L3[0]) / 15, 'tick', 'lf' + j);
+C(S.scores.start + .4, 'pop', 'slot'); C(25.1, 'row', 'scan');
+for (let j = 0; j < 8; j++) C(25.3 + j * .28, 'tick', 'cnt' + j);
+C(T.sc150 + .42, 'impact', 'cnt');
+BT.forEach((t, i) => C(t, 'row', 'bar' + i));
+C(T.sc20, 'pop', 'v20'); C(T.sc10, 'pop', 'v10'); C(T.sc7, 'pop', 'v7');
+HOPS.forEach(([, t], i) => C(t, 'tick', 'hop' + i));
+C(T.pkBlue, 'stamp', 'lock'); C(T.pkAdds, 'row', 'fly'); C(T.pkAdds + .6, 'pop', 'land'); C(T.pkStarts, 'whoosh', 'loop');
+for (let i = 5; i < ALL.length; i++) C(T.rpFirst + (i - 5) * .27, 'pop', 'tok' + i);
+C(T.ctaNo, 'tick', 'no'); C(T.ctaJust - .02, 'stamp', 'odds');
+C(T.ctaFollow - .05, 'cta', 'follow');
+window.CUES = CUES.sort((a, b) => a.t - b.t);
+
+/* ---------------- captions ---------------- */
+const capMeas = document.createElement('span');
+capMeas.style.cssText = 'position:absolute;visibility:hidden;left:-9999px;top:0;white-space:pre;font-family:InterV,sans-serif;font-weight:900;font-size:68px;letter-spacing:-.02em;';
+document.body.appendChild(capMeas);
+const capW = w => { capMeas.textContent = w; return capMeas.getBoundingClientRect().width + 27; };   // word + its side margins
+const CAPMAX = 880;
+function chunk(words) {
+  // 1) sentences / clauses
+  let groups = [], cur = [];
+  words.forEach((w, i) => { cur.push(i); if (/[.?!:;,]$/.test(w.w)) { groups.push(cur); cur = []; } });
+  if (cur.length) groups.push(cur);
+  // 2) split each clause into the fewest lines that fit, with the most even widths
+  let res = [];
+  for (const g of groups) {
+    const ws = g.map(i => capW(words[i].w)), tot = sum(ws);
+    let k = Math.max(1, Math.ceil(tot / CAPMAX), Math.ceil(g.length / 6));
+    for (; k <= g.length; k++) {
+      let best = null;
+      const rec = (start, left, acc, mx) => {
+        if (left === 1) { const w = sum(ws.slice(start)); const m = Math.max(mx, w); if (w <= CAPMAX && (!best || m < best.m)) best = { m, cuts: acc.slice() }; return; }
+        for (let e = start + 1; e <= g.length - (left - 1); e++) {
+          const w = sum(ws.slice(start, e)); if (w > CAPMAX) break;
+          acc.push(e); rec(e, left - 1, acc, Math.max(mx, w)); acc.pop();
+        }
+      };
+      rec(0, k, [], 0);
+      if (best) { let a = 0; for (const c of best.cuts.concat([g.length])) { res.push(g.slice(a, c)); a = c; } break; }
+    }
+  }
+  // 3) no single-word orphans when a neighbour has room
+  for (let i = 0; i < res.length; i++) {
+    if (res[i].length === 1 && res.length > 1) {
+      const w1 = sum(res[i].map(j => capW(words[j].w)));
+      if (i + 1 < res.length && w1 + sum(res[i + 1].map(j => capW(words[j].w))) <= CAPMAX) { res[i + 1] = res[i].concat(res[i + 1]); res.splice(i, 1); i--; }
+      else if (i > 0 && w1 + sum(res[i - 1].map(j => capW(words[j].w))) <= CAPMAX) { res[i - 1] = res[i - 1].concat(res[i]); res.splice(i, 1); i--; }
+    }
+  }
+  return res;
+}
+const capsRoot = $('caps');
+const caps = [];
+for (const scene of TL.scenes) {
+  if (scene.id === 'hook') continue;
+  const ch = chunk(scene.words);
+  ch.forEach((idx, n) => {
+    const el = document.createElement('div'); el.className = 'cap';
+    el.innerHTML = idx.map(i => `<span class="cw">${scene.words[i].w}</span>`).join('');
+    capsRoot.appendChild(el);
+    const first = scene.words[idx[0]].s;
+    const nextFirst = n + 1 < ch.length ? scene.words[ch[n + 1][0]].s : scene.speech_end + .25;
+    caps.push({ el, spans: [...el.children], words: idx.map(i => scene.words[i]), t0: first - .03, t1: nextFirst - .03, scene: scene.id });
+  });
+}
+
+/* ---------------- background bokeh ---------------- */
+const bctx = $('bokeh').getContext('2d');
+const R0 = rnd(42);
+const dots = Array.from({ length: 26 }, () => ({
+  x: R0() * 1080, y: R0() * 2100, r: 7 + R0() * 30, a: .05 + R0() * .11, v: 8 + R0() * 22,
+  c: [[0, 245, 255], [0, 255, 135], [0, 245, 255]][Math.floor(R0() * 3)],
+}));
+function drawBokeh(t) {
+  bctx.clearRect(0, 0, 1080, 1920);
+  for (const d of dots) {
+    const y = ((d.y - d.v * t) % 2100 + 2100) % 2100 - 90;
+    const g = bctx.createRadialGradient(d.x, y, 0, d.x, y, d.r);
+    g.addColorStop(0, `rgba(${d.c},${d.a})`); g.addColorStop(.72, `rgba(${d.c},${d.a * .8})`); g.addColorStop(1, `rgba(${d.c},0)`);
+    bctx.fillStyle = g; bctx.beginPath(); bctx.arc(d.x, y, d.r, 0, 6.2832); bctx.fill();
+  }
+}
+
+/* ---------------- per-frame helpers ---------------- */
+const rollText = (final, p, t) => {
+  const n = final.length, seed = Math.floor(t * 30);
+  return final.split('').map((ch, k) => (p >= (k + 1) / n ? ch : String(Math.floor(rnd(seed * 31 + k * 7 + 3)() * 10)))).join('');
+};
+const mixRGB = (a, b, k) => `rgb(${(lerp(a[0], b[0], k)) | 0},${(lerp(a[1], b[1], k)) | 0},${(lerp(a[2], b[2], k)) | 0})`;
+const placeChip = (i, cx, cy, s, w, box, op) => {
+  const el = tk[i];
+  el.style.opacity = op;
+  el.style.width = w + 'px';
+  el.style.transform = `translate(${cx}px,${cy}px) scale(${s}) translate(${-w / 2}px,${-H / 2}px)`;
+  bx[i].style.opacity = box;
+};
+const placeSlot = (el, cx, w, op) => {
+  el.style.opacity = op; el.style.width = w + 'px';
+  el.style.transform = `translate(${cx}px,${CYS}px) scale(${SM}) translate(${-w / 2}px,${-H / 2}px)`;
+};
+const SRC = {
+  tokens: 'REAL RUN · QWEN2.5-0.5B (APACHE-2.0) · TOKENS ARE OFTEN WORD PIECES',
+  numbers: 'REAL VALUES FROM THE MODEL · BLUE-GREEN = NEGATIVE / POSITIVE',
+  layers: 'REAL RUN · ONE OF 336 ATTENTION HEADS SHOWN · EACH ROW OF NUMBERS SCALED ALONE',
+  scores: 'REAL PROBABILITIES FROM THE MODEL · SPECK POSITIONS ARE ONLY ILLUSTRATIVE',
+  pick: 'THIS RUN ALWAYS TAKES THE TOP TOKEN · REAL APPS SAMPLE, SO ANSWERS VARY',
+  repeat: 'REAL OUTPUT OF THE SAME RUN · A BASE MODEL, NOT A CHAT-TUNED ONE',
+};
+
+/* ---------------- per frame ---------------- */
+function update(t) {
+  const out = 1 - easeIn(prog(t, S.cta.start - .3, .35));            // everything but the CTA leaves before the 3D comes back
+  // background crossfade between the 3D footage and the explainer scenes
+  const bgA = Math.min(easeOut(prog(t, S.hook.end - .15, .5)), 1 - easeIn(prog(t, S.cta.start - .1, .4)));
+  $('bg').style.opacity = bgA;
+  if (bgA > 0.001) { drawBokeh(t); $('grid').style.backgroundPosition = `0px ${(t * 14) % 90}px`; }
+
+  // hook
+  hookSpans.forEach((el, i) => {
+    const p = prog(t, hookT[i], .38), e = easeOutBack(p);
+    const o = 1 - easeIn(prog(t, S.hook.end - .3, .3));
+    el.style.opacity = clamp(p * 1.6) * o;
+    el.style.transform = `translateY(${(1 - clamp(e, 0, 1.2)) * 30}px) scale(${.7 + .3 * clamp(e, 0, 1.15)})`;
+  });
+
+  // HUD and stepper
+  $('hudR').style.opacity = easeOut(prog(t, T.promptIn + .25, .4)) * out;
+  $('dot').style.opacity = .55 + .45 * Math.sin(t * 5);
+  $('stepper').style.opacity = easeOut(prog(t, S.tokens.start + .15, .4)) * out;
+  const loop = t >= T.pkStarts, act = loop ? Math.floor((t - T.pkStarts) / .2) % 5 : -1;
+  stepEls.forEach((s, i) => {
+    let fill, st;
+    if (loop) { fill = 1; st = i === act ? 'a' : 'd'; }
+    else { const a = SBOUND[i], b = SBOUND[i + 1]; fill = prog(t, a, b - a); st = t >= b ? 'd' : (t >= a ? 'a' : 'f'); }
+    s.fill.style.width = (fill * 100) + '%';
+    s.fill.style.background = st === 'a' ? '#00FF87' : 'rgba(0,245,255,.85)';
+    s.fill.style.boxShadow = st === 'a' ? '0 0 12px #00FF87' : 'none';
+    s.lb.style.color = st === 'a' ? '#00FF87' : (st === 'd' ? 'rgba(0,245,255,.85)' : 'rgba(160,190,200,.5)');
+  });
+
+  /* ===== tokens ===== */
+  const mcA = win(t, S.tokens.start + .2, T.promptIn + .15, .4, .35);
+  const mc = $('modelCard');
+  mc.style.opacity = mcA;
+  mc.style.transform = `translateY(${(1 - easeOut(prog(t, S.tokens.start + .2, .55))) * 40 - easeIn(prog(t, T.promptIn - .15, .3)) * 40}px)`;
+  const nE = easeOut(prog(t, T.nameCue - .05, .5));
+  $('mName').style.opacity = nE; $('mName').style.transform = `translateY(${(1 - nE) * 26}px)`;
+  $('mLic').style.opacity = easeOut(prog(t, T.licCue, .4));
+  $('mParams').style.opacity = easeOut(prog(t, T.paramCue - .15, .3));
+  $('mParamsN').textContent = fmtInt(D.model.params * easeOut(prog(t, T.paramCue - .1, .75)));
+
+  $('promptBox').style.opacity = win(t, T.promptIn, T.cut + .45, .35, .4);
+  const nVis = T.wordCue.filter(c => t >= c).length;
+  const caretX = nVis === 0 ? PCX[0] - TW[0] / 2 - 6 : PCX[nVis - 1] + TW[nVis - 1] / 2 + 10;
+  const caretOn = t >= T.promptIn + .1 && t < T.cut + .02;
+  $('caret').style.left = caretX + 'px'; $('caret').style.top = (CYP - 39) + 'px';
+  $('caret').style.opacity = caretOn ? (Math.sin(t * 11) > -.3 ? 1 : .1) : 0;
+  const cl = easeInOut(prog(t, T.cut, .6));
+  $('cutLine').style.left = lerp(100, 980, cl) + 'px';
+  $('cutLine').style.opacity = clamp(prog(t, T.cut, .06)) * (1 - prog(t, T.cut + .5, .14));
+  // ids
+  const idsA = 1 - easeIn(prog(t, S.numbers.start - .05, .3));
+  idEls.forEach((el, i) => {
+    const st = T.idCue + .12 * i, p = prog(t, st, .4);
+    el.style.opacity = easeOut(clamp(p * 3)) * idsA;
+    el.lastChild.textContent = rollText(String(IDS[i]), p, t);
+  });
+  $('cnt').style.opacity = easeOut(prog(t, T.idCue + .55, .35)) * idsA;
+  $('pieces').style.opacity = easeOut(prog(t, T.tokensWord + .15, .4)) * idsA;
+
+  /* ===== numbers ===== */
+  tileEl.forEach((el, i) => {
+    const t0 = T.numBecomes + i * .13;
+    const rows = 28 * easeOut(prog(t, t0, .8));
+    let a = easeOut(prog(t, t0 - .05, .2));
+    if (i < 3) a *= 1 - easeIn(prog(t, S.layers.start + .05, .4));
+    else a *= 1 - easeOut(prog(t, S.layers.start + .35, .45));
+    el.style.opacity = a;
+    if (a > .002) drawTile(tileCtx[i], EMB[i], QE[i], 7, 6, rows);
+    el.style.transform = i < 3 ? `scale(${1 - .06 * easeIn(prog(t, S.layers.start + .05, .4))})` : 'none';
+  });
+  const valsA = 1 - easeIn(prog(t, S.layers.start, .3));
+  valsEl.forEach((el, i) => {
+    const e = easeOut(prog(t, T.numList + i * .1, .4));
+    el.style.opacity = e * valsA; el.style.transform = `translateY(${(1 - e) * 16}px)`;
+  });
+  const nE9 = easeOut(prog(t, T.num896, .55)), nB = easeOutBack(prog(t, T.num896, .5));
+  const n9 = $('n896');
+  n9.style.opacity = clamp(prog(t, T.num896 - .05, .2)) * (1 - easeIn(prog(t, S.layers.start + .02, .3)));
+  n9.style.transform = `scale(${.8 + .2 * clamp(nB, 0, 1.1)})`;
+  $('n896n').textContent = Math.round(896 * nE9);
+  n9.children[1].style.opacity = easeOut(prog(t, T.num896 + .35, .35));
+  n9.children[2].style.opacity = easeOut(prog(t, T.num896 + .7, .35));
+
+  /* ===== layers ===== */
+  const lw = win(t, S.layers.start + .35, S.scores.start + .35, .35, .4);
+  $('layersWrap').style.opacity = lw;
+  const pos = layerPos(t), nLay = Math.round(pos);
+  const bt = easeOut(prog(t, S.layers.start + .1, .5)) * (1 - easeIn(prog(t, S.scores.start + .05, .55)));
+  const bE = easeInOut(prog(t, S.layers.start + .1, .9));
+  const big = $('bigTile');
+  big.style.opacity = bt;
+  big.style.transform = `translate(${(TCX[3] - 540) * (1 - bE)}px,${(450 + 98 - 810) * (1 - bE)}px) scale(${lerp(224 / 480, 1, bE)}) ${t > S.scores.start ? `scale(${1 + .08 * easeOut(prog(t, S.scores.start + .05, .6))})` : ''}`;
+  if (bt > .002) { const [vals, q] = layerVals(pos); drawTile(bigCtx, vals, q, 15, 13, 28); }
+  $('lyN').textContent = String(nLay).padStart(2, '0');
+  ladder.forEach((d, i) => {
+    const k = i + 1, ap = easeOut(prog(t, T.ly24 - .5 + i * .03, .25));
+    const lit = nLay >= k, cur = nLay === k;
+    d.style.opacity = ap;
+    d.style.background = cur ? '#00FF87' : (lit ? 'rgba(0,245,255,.8)' : 'rgba(160,190,200,.15)');
+    d.style.boxShadow = cur ? '0 0 16px #00FF87' : 'none';
+  });
+  const aOn = win(t, T.lyTokens, T.lyAnd + .05, .35, .3);
+  $('attnTag').style.opacity = aOn;
+  $('attnTag').style.transform = `translateY(${(1 - easeOut(prog(t, T.lyTokens, .4))) * 14}px)`;
+  arcsSvg.style.opacity = aOn;
+  const arcP = easeOut(prog(t, T.lyLook, .8));
+  $('arcPath').style.strokeDashoffset = 100 * (1 - arcP);
+  $('arcHead').style.opacity = clamp((arcP - .85) * 7);
+  $('arcDot').style.opacity = clamp(arcP * 6);
+  attps.forEach((el, i) => { const e = easeOut(prog(t, T.lyLook + .3 + (i === 2 ? 0 : .12), .35)); el.style.opacity = e * aOn; });
+
+  /* ===== scores ===== */
+  const swA = win(t, S.scores.start + .2, S.pick.end + 1, .3, .3) * out;
+  $('scoresWrap').style.opacity = 1;
+  const pScan = easeInOut(prog(t, 25.1, T.sc150 + .45 - 25.1));
+  const cntA = easeOut(prog(t, 24.8, .35)) * (1 - easeIn(prog(t, T.scThem - .05, .5)));
+  $('cntBig').style.opacity = cntA; $('cntBig').textContent = fmtInt(VOCAB * pScan);
+  $('cntLab').style.opacity = cntA;
+  const fA = easeOut(prog(t, 24.55, .4)) * (1 - easeIn(prog(t, T.scThem, .65)));
+  const fe = $('field'); fe.style.opacity = fA;
+  if (fA > .002) {
+    fctx.clearRect(0, 0, FC, FR);
+    fctx.globalAlpha = .1; fctx.drawImage(off, 0, 0);
+    fctx.globalAlpha = 1;
+    const rowsLit = Math.floor(pScan * FR);
+    if (rowsLit > 0) fctx.drawImage(off, 0, 0, FC, rowsLit, 0, 0, FC, rowsLit);
+    if (pScan < 1) { fctx.fillStyle = 'rgba(0,255,135,.95)'; fctx.fillRect(0, rowsLit, FC, 1.6); }
+  }
+  $('probHead').style.opacity = easeOut(prog(t, T.scThem + .35, .4)) * (1 - easeIn(prog(t, S.pick.start + 2.4, .3)));
+  const pickOut = 1 - easeIn(prog(t, T.pkAdds + .75, .4));
+  barRows.forEach((b, i) => {
+    const e = easeOut(prog(t, BT[i] - .05, .45)), g = easeOut(prog(t, BT[i], .65));
+    let dim = 1;
+    if (i > 0) dim = 1 - .72 * easeOut(prog(t, T.pkBlue, .35));
+    b.el.style.opacity = e * dim * pickOut;
+    b.el.style.transform = `translateX(${(1 - e) * -40}px)`;
+    b.rb.style.width = (b.w * g) + 'px';
+    const bump = [T.sc20, T.sc10, T.sc7][i] !== undefined ? Math.sin(Math.PI * prog(t, [T.sc20, T.sc10, T.sc7][i], .55)) : 0;
+    b.rv.style.left = (220 + b.w * g + 18) + 'px';
+    b.rv.style.opacity = easeOut(prog(t, BT[i] + .25, .3));
+    b.rv.style.transform = `scale(${1 + .3 * bump})`;
+    if (i === 0) b.rl.style.opacity = 1 - clamp(prog(t, T.pkAdds - .02, .08));
+  });
+  // selection ring
+  const sel = $('sel');
+  let hopI = -1; HOPS.forEach(([, ht], k) => { if (t >= ht) hopI = k; });
+  if (hopI >= 0) {
+    const [row, ht] = HOPS[hopI], prevRow = hopI > 0 ? HOPS[hopI - 1][0] : row;
+    const y = lerp(rowTop(prevRow), rowTop(row), easeOut(prog(t, ht, .14)));
+    const lock = Math.sin(Math.PI * clamp(prog(t, T.pkBlue, .4)));
+    sel.style.top = (y - 8) + 'px';
+    sel.style.opacity = clamp(prog(t, HOPS[0][1], .1)) * pickOut;
+    sel.style.boxShadow = `0 0 ${36 + 50 * lock}px rgba(0,255,135,${.55 + .35 * lock}), inset 0 0 28px rgba(0,255,135,.12)`;
+    sel.style.transform = `scale(${1 + .02 * lock})`;
+  } else sel.style.opacity = 0;
+  $('sumNote').style.opacity = easeOut(prog(t, BT[5] + .3, .4)) * pickOut;
+
+  /* ===== loop ring (the model starts over) ===== */
+  const lpA = win(t, T.pkStarts - .25, S.repeat.start + .25, .35, .35);
+  $('loop').style.opacity = lpA; $('loopTxt').style.opacity = lpA; $('loopSub').style.opacity = lpA;
+  $('loopTxt').style.transform = `scale(${.9 + .1 * easeOutBack(prog(t, T.pkStarts, .4))})`;
+  const lp = easeInOut(prog(t, T.pkStarts - .1, 1.0));
+  $('loopArc').style.strokeDashoffset = 100 * (1 - lp);
+  const ang = (lp * 360 - 90) * Math.PI / 180;
+  $('loopHead').setAttribute('transform', `translate(${540 + 150 * Math.cos(ang)} ${860 + 150 * Math.sin(ang)}) rotate(${lp * 360})`);
+
+  /* ===== chips ===== */
+  for (let i = 0; i < ALL.length; i++) {
+    let cx, cy, s, w, box = 0, op = 1;
+    if (i < 4) {
+      op = easeOut(prog(t, T.wordCue[i] - .02, .16));
+      const g = easeInOut(prog(t, T.cut, .7));
+      cx = lerp(PCX[i], CCX[i], g); w = lerp(TW[i], WC[i], g); cy = CYP; s = 1;
+      box = easeOut(prog(t, T.cut + .1 + .13 * i, .22));
+      const gt = easeInOut(prog(t, S.numbers.start + .08 + .05 * i, .75));
+      cx = lerp(cx, TCX[i], gt); cy = lerp(cy, CYS, gt); s = lerp(1, SM, gt);
+      const gm = easeInOut(prog(t, S.layers.start + .1 + .04 * i, .7));
+      cx = lerp(cx, stripCX(i, t), gm);
+      const gf = easeInOut(prog(t, S.repeat.start + .02 + .05 * i, .75));
+      cx = lerp(cx, FPOS[i].cx, gf); cy = lerp(cy, FPOS[i].cy, gf); s = lerp(s, SF, gf);
+      // highlight: the last token is the one we follow; " color" lights up while it is looked at
+      const hl = i === 3 ? win(t, S.layers.start + .8, S.scores.start + .3, .4, .4) : (i === 2 ? aOn : 0);
+      bx[i].style.borderColor = mixRGB([0, 245, 255], [0, 255, 135], hl);
+      bx[i].style.boxShadow = `0 0 ${28 + 22 * hl}px rgba(${lerp(0, 0, hl) | 0},${lerp(245, 255, hl) | 0},${lerp(255, 135, hl) | 0},${.22 + .3 * hl})`;
+      tt[i].style.color = mixRGB([242, 251, 255], [0, 255, 135], hl * .85);
+    } else if (i === 4) {
+      const e = easeInOut(prog(t, T.pkAdds, .6)), u = 1 - e;
+      const x1 = stripCX(4, t), y1 = CYS, x0 = BLUE_X0, y0 = rowCY(0);
+      cx = u * u * x0 + 2 * u * e * x0 + e * e * x1;
+      cy = u * u * y0 + 2 * u * e * y1 + e * e * y1;
+      s = lerp(.72, SM, e); w = lerp(TW[4], WC[4], e); box = e; op = clamp(prog(t, T.pkAdds - .02, .1));
+      const gf = easeInOut(prog(t, S.repeat.start + .02 + .05 * 4, .75));
+      cx = lerp(cx, FPOS[4].cx, gf); cy = lerp(cy, FPOS[4].cy, gf); s = lerp(s, SF, gf);
+    } else {
+      const ta = T.rpFirst + (i - 5) * .27, e = easeOutBack(prog(t, ta, .38));
+      cx = FPOS[i].cx; cy = FPOS[i].cy + (1 - clamp(e, 0, 1.1)) * 26; s = SF * (.72 + .28 * clamp(e, 0, 1.12)); w = WC[i]; box = 1;
+      op = clamp(prog(t, ta, .14));
+    }
+    placeChip(i, cx, cy, s, w, box, op * out);
+    if (i >= 4) {
+      const pa = (i === 4 ? easeOut(prog(t, S.repeat.start + .75, .35)) : easeOut(prog(t, T.rpFirst + (i - 5) * .27 + .12, .3))) * out;
+      const bw = Math.max(0, w * s - 12);
+      pbar[i].style.opacity = pa; pbar[i].style.width = bw + 'px';
+      pbar[i].style.transform = `translate(${cx - w * s / 2 + 6}px,${cy + H * s / 2 + 10}px)`;
+      pbar[i].firstChild.style.width = (PROB[i] * 100) + '%';
+      plab[i].style.opacity = pa; plab[i].style.transform = `translate(${cx}px,${cy + H * s / 2 + 24}px)`;
+    }
+  }
+  // blank slots in the strip
+  const slotAo = easeOut(prog(t, S.scores.start + .4, .4)) * (1 - easeOut(prog(t, T.pkAdds + .35, .25))) * out;
+  placeSlot(slotA, M5[4] , WC[4], slotAo);
+  const slotBo = easeOut(prog(t, T.pkAdds + .75, .35)) * (1 - easeOut(prog(t, S.repeat.start, .3))) * out;
+  placeSlot(slotB, M6[5], WC[5], slotBo);
+  // flow: caret after the last token that has appeared, and the legend
+  let last = 4; for (let i = 5; i < ALL.length; i++) if (t >= T.rpFirst + (i - 5) * .27) last = i;
+  const cf = $('caretF'), inFlow = t >= S.repeat.start + .6;
+  cf.style.left = (FPOS[last].cx + WC[last] * SF / 2 + 14) + 'px'; cf.style.top = FPOS[last].cy + 'px';
+  cf.style.opacity = inFlow ? (Math.sin(t * 11) > -.3 ? 1 : .1) * out : 0;
+  $('legend').style.opacity = easeOut(prog(t, T.rpFirst + 1.0, .4)) * out;
+
+  /* ===== CTA ===== */
+  const aOut = 1 - easeIn(prog(t, T.ctaFollow - .3, .22));
+  for (const [id, c, dy] of [['ctaA1', T.ctaNo, 30], ['ctaA2', T.ctaJust, 36]]) {
+    const e = easeOut(prog(t, c - .04, .45)), el = $(id);
+    el.style.opacity = e * aOut; el.style.transform = `translateY(${(1 - e) * dy}px) scale(${.92 + .08 * e})`;
+  }
+  for (const [id, c, dy] of [['ctaFollow', T.ctaFollow, 40], ['ctaBrand', T.ctaBrand, 30], ['ctaTag', T.ctaAI, 20]]) {
+    const e = easeOut(prog(t, c - .05, .5)), el = $(id);
+    el.style.opacity = e; el.style.transform = `translateY(${(1 - e) * dy}px) scale(${.94 + .06 * e})`;
+  }
+
+  /* ===== captions ===== */
+  for (const c of caps) {
+    const on = t >= c.t0 && t < c.t1;
+    c.el.style.display = on ? 'flex' : 'none';
+    if (!on) continue;
+    c.spans.forEach((sp, i) => {
+      const w = c.words[i];
+      const started = t >= w.s;
+      const nextS = i + 1 < c.words.length ? c.words[i + 1].s : c.t1 + .02;
+      const current = started && t < nextS;
+      const pop = current ? easeOutBack(prog(t, w.s, .16)) : 1;
+      sp.style.color = current ? '#00FF87' : '#FFFFFF';
+      sp.style.opacity = started ? 1 : .42;
+      sp.style.transform = `scale(${current ? 1 + .1 * clamp(pop, 0, 1.2) : 1})`;
+    });
+  }
+  $('caps').style.transform = t >= S.cta.start + .04 ? 'translateY(230px)' : 'none';
+  let sid = null;
+  for (const k of ['tokens', 'numbers', 'layers', 'scores', 'pick', 'repeat']) if (t >= S[k].start - .05 && t < S[k].end) sid = k;
+  const srcEl = $('src');
+  if (sid) { srcEl.textContent = SRC[sid]; srcEl.style.opacity = .9 * Math.min(easeOut(prog(t, S[sid].start + .3, .4)), 1 - easeIn(prog(t, S[sid].end - .25, .25))); }
+  else srcEl.style.opacity = 0;
+}
+window.renderFrame = (t) => { update(t); return true; };
+window.TL = TL;
+update(0);
+window.sceneReady = true;
+})();
+</script>
+</body>
+</html>

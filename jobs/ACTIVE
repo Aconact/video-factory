@@ -1,7 +1,12 @@
 # Which Blender job the render workflow runs when this file changes (see .github/scripts/plan.py)
-job=dc
+#   job      folder under jobs/ that holds scene.py
+#   pct      resolution percentage of 1080x1920
+#   samples  Cycles samples per pixel
+#   fstart / fend  first and last frame of the shot       frames  optional preview list (1,45,90 or 1-10)
+#   shards   parallel GitHub jobs that share the frames
+job=nn
 pct=100
 samples=12
 fstart=1
-fend=150
+fend=135
 shards=20

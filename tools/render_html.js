@@ -1,7 +1,7 @@
 // Renders an HTML scene (window.renderFrame(t)) to numbered frames with Playwright.
 //
 //   node tools/render_html.js --html videos/x/index.html --fonts videos/fonts \
-//        --timeline timeline.json --out frames [--times 1,2.5] [--workers 2] [--overlay 1]
+//        --timeline timeline.json --out frames [--times 1,2.5] [--workers 2] [--overlay 1] [--data data.json]
 //
 // Frames inside the "alpha windows" (where the page sits on top of Blender footage) are saved as
 // PNG with transparency (a_00001.png); all other frames are saved as JPEG (o_00001.jpg).
@@ -18,6 +18,7 @@ const htmlPath = path.resolve(args.html);
 const fontsDir = path.resolve(args.fonts);
 const timelinePath = path.resolve(args.timeline);
 const outDir = path.resolve(args.out);
+const dataPath = args.data ? path.resolve(args.data) : null;      // optional: served as /data.json
 const fps = parseInt(args.fps || '30', 10);
 const workers = parseInt(args.workers || '2', 10);
 const W = 1080, H = 1920;
@@ -36,6 +37,7 @@ const mime = { '.ttf': 'font/ttf', '.json': 'application/json', '.html': 'text/h
 function resolveRoute(p) {
   if (p === '/' || p === '/index.html') return htmlPath;
   if (p === '/timeline.json') return timelinePath;
+  if (p === '/data.json' && dataPath) return dataPath;
   if (p.startsWith('/fonts/')) {
     const full = path.normalize(path.join(fontsDir, p.slice('/fonts/'.length)));
     return full.startsWith(fontsDir + path.sep) ? full : null;

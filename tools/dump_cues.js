@@ -5,6 +5,7 @@ const path = require('path');
 const args = {};
 for (let i = 2; i < process.argv.length; i += 2) args[process.argv[i].replace(/^--/, '')] = process.argv[i + 1];
 const htmlPath = path.resolve(args.html), fontsDir = path.resolve(args.fonts), timelinePath = path.resolve(args.timeline);
+const dataPath = args.data ? path.resolve(args.data) : null;
 (async () => {
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 1080, height: 1920 } });
@@ -14,6 +15,7 @@ const htmlPath = path.resolve(args.html), fontsDir = path.resolve(args.fonts), t
     let file = null;
     if (p === '/' || p === '/index.html') file = htmlPath;
     else if (p === '/timeline.json') file = timelinePath;
+    else if (p === '/data.json' && dataPath) file = dataPath;
     else if (p.startsWith('/fonts/')) file = path.join(fontsDir, p.slice(7));
     if (!file || !fs.existsSync(file)) { await route.fulfill({ status: 404, body: '' }); return; }
     const type = file.endsWith('.ttf') ? 'font/ttf' : file.endsWith('.json') ? 'application/json' : 'text/html';

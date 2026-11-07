@@ -1,4 +1,4 @@
-"""Hero shot: four tokens go in, a pulse of light climbs through the layers, one word comes out (3.9 s, 1080x1920, 30 fps).
+"""Hero shot: four tokens go in, a pulse of light climbs through the layers, one word comes out (4.5 s, 1080x1920, 30 fps).
 
 The words are the real ones from the model run in videos/next-word/data.json (tokens in, most likely token out).
 Built the way a Blender artist would: glass tiles with emissive type, a layered network of glowing nodes and edges,
@@ -24,7 +24,7 @@ from blender_lib import (CYAN, GREEN, lin, mat, bump, box, plane, sphere, curve,
 from fastq import apply_recipe  # noqa: E402
 
 FPS = 30
-DURATION = float(os.environ.get("DURATION", "3.9"))
+DURATION = float(os.environ.get("DURATION", "4.5"))
 N = int(round(DURATION * FPS))
 PCT = int(os.environ.get("RES_PERCENT", "50"))
 SAMPLES = int(os.environ.get("SAMPLES", "32"))
@@ -64,7 +64,7 @@ Z_WORD = 6.45
 T_TOK = 0.45                               # seconds: tiles light up
 T_LAYER = [0.95, 1.45, 1.95, 2.45]         # pulse reaches each layer
 T_OUT = 2.85                               # output node
-T_WORD = 3.0                               # the answer appears
+T_WORD = 3.15                              # the answer appears (the voice says "answer?" at 3.24)
 
 layers = []
 for n, dx, z in zip(LAYER_N, LAYER_DX, LAYER_Z):
