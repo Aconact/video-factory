@@ -35,7 +35,7 @@ html, body { margin: 0; padding: 0; background: transparent; }
 .st .lb { margin-top: 12px; font-family: JBM, monospace; font-weight: 700; font-size: 22px; letter-spacing: .14em; white-space: nowrap; }
 
 /* ---------- hook ---------- */
-#hookTitle { position: absolute; left: 0; width: 1080px; top: 250px; text-align: center; font-weight: 900; font-size: 84px; line-height: 1.08; letter-spacing: -.025em; text-transform: uppercase; }
+#hookTitle { position: absolute; left: 0; width: 1080px; top: 226px; text-align: center; font-weight: 900; font-size: 84px; line-height: 1.08; letter-spacing: -.025em; text-transform: uppercase; }
 #hookTitle .w, #hookSub .w { display: inline-block; opacity: 0; will-change: transform; }
 #hookTitle .g { color: #00FF87; text-shadow: 0 0 40px rgba(0,255,135,.55); }
 #hookTitle .line { display: block; white-space: nowrap; }
@@ -115,16 +115,17 @@ html, body { margin: 0; padding: 0; background: transparent; }
 .brow .rl { position: absolute; left: 6px; top: 10px; width: 200px; font-weight: 800; font-size: 50px; letter-spacing: -.02em; white-space: nowrap; }
 .brow .rb { position: absolute; left: 220px; top: 12px; height: 56px; width: 0; border-radius: 14px; }
 .brow .rv { position: absolute; top: 12px; font-family: JBM, monospace; font-weight: 800; font-size: 40px; white-space: nowrap; transform-origin: 0 50%; }
-#sel { position: absolute; left: 48px; width: 984px; height: 96px; box-sizing: border-box; border: 3px solid #00FF87; border-radius: 24px; box-shadow: 0 0 36px rgba(0,255,135,.55), inset 0 0 28px rgba(0,255,135,.12); opacity: 0; }
+#sel { position: absolute; left: 50px; width: 904px; height: 96px; box-sizing: border-box; border: 3px solid #00FF87; border-radius: 24px; box-shadow: 0 0 36px rgba(0,255,135,.55), inset 0 0 28px rgba(0,255,135,.12); opacity: 0; }
 #sumNote { position: absolute; left: 0; width: 1080px; top: 1176px; text-align: center; font-family: JBM, monospace; font-weight: 700; font-size: 23px; letter-spacing: .1em; color: rgba(190,212,220,.9); opacity: 0; }
 
 /* ---------- pick + repeat ---------- */
 #loopTxt { position: absolute; left: 0; width: 1080px; top: 780px; text-align: center; font-weight: 900; font-size: 74px; letter-spacing: -.02em; color: #F2FBFF; opacity: 0; }
-#loopSub { position: absolute; left: 0; width: 1080px; top: 1010px; text-align: center; font-family: JBM, monospace; font-weight: 700; font-size: 24px; letter-spacing: .14em; color: rgba(190,212,220,.92); opacity: 0; }
+#loopSub { position: absolute; left: 0; width: 1080px; top: 1068px; text-align: center; font-family: JBM, monospace; font-weight: 700; font-size: 24px; letter-spacing: .14em; color: rgba(190,212,220,.92); opacity: 0; }
 #legend { position: absolute; left: 60px; width: 960px; text-align: center; font-family: JBM, monospace; font-weight: 700; font-size: 23px; letter-spacing: .1em; color: rgba(190,212,220,.9); opacity: 0; }
 #caretF { position: absolute; width: 7px; height: 70px; margin-left: -3px; margin-top: -35px; background: #00FF87; border-radius: 3px; box-shadow: 0 0 14px #00FF87; opacity: 0; }
 
 /* ---------- CTA ---------- */
+#ctaScrim { position: absolute; left: 0; top: 0; width: 1080px; height: 760px; background: linear-gradient(180deg, rgba(1,6,8,.88) 0%, rgba(1,6,8,.80) 48%, rgba(1,6,8,0) 100%); opacity: 0; }
 #cta .t { position: absolute; left: 0; width: 1080px; text-align: center; opacity: 0; text-shadow: 0 4px 30px rgba(0,0,0,.75); white-space: nowrap; }
 #ctaA1 { top: 244px; font-weight: 900; font-size: 74px; letter-spacing: -.03em; color: #F2FBFF; }
 #ctaA2 { top: 336px; font-weight: 900; font-size: 134px; letter-spacing: -.04em; color: #00FF87; text-shadow: 0 0 56px rgba(0,255,135,.55), 0 4px 30px rgba(0,0,0,.75); }
@@ -136,7 +137,7 @@ html, body { margin: 0; padding: 0; background: transparent; }
 /* ---------- captions ---------- */
 #caps { position: absolute; left: 70px; width: 940px; top: 1300px; height: 200px; display: flex; align-items: center; justify-content: center; }
 .cap { position: absolute; left: 0; width: 940px; top: 0; height: 200px; display: none; align-items: center; justify-content: center; text-align: center; flex-wrap: wrap; align-content: center; }
-.cap .cw { display: inline-block; margin: 0 .2em; font-weight: 900; font-size: 68px; line-height: 1.12; letter-spacing: -.02em; color: #fff;
+.cap .cw { display: inline-block; margin: 0 .22em; font-weight: 900; font-size: 68px; line-height: 1.12; letter-spacing: -.02em; color: #fff;
   -webkit-text-stroke: 13px rgba(2,10,14,.92); paint-order: stroke fill; transform-origin: 50% 70%; }
 #src { position: absolute; left: 40px; width: 1000px; top: 1548px; text-align: center; font-family: JBM, monospace; font-weight: 600; font-size: 22px; letter-spacing: .05em; color: rgba(190,212,220,.8); opacity: 0; }
 </style>
@@ -199,6 +200,7 @@ html, body { margin: 0; padding: 0; background: transparent; }
   <div id="hook" class="abs"><div id="hookTitle"></div><div id="hookSub"></div></div>
 
   <div id="cta" class="abs">
+    <div id="ctaScrim"></div>
     <div id="ctaA1" class="t">NO FAVORITE COLOR.</div>
     <div id="ctaA2" class="t">JUST ODDS.</div>
     <div id="ctaFollow" class="t">FOLLOW</div>
@@ -336,7 +338,7 @@ for (let i = 4; i < ALL.length; i++) {
 }
 
 // layout modes
-const CYP = 600, CYS = 380, SM = .7, GM = 16, SF = .85, GF = 16;
+const CYP = 600, CYS = 380, SM = .7, GM = 16, SF = 1.0, GF = 16;
 const sum = a => a.reduce((x, y) => x + y, 0);
 let xx = 540 - (sum(TW.slice(0, 4)) + 3 * SPW) / 2; const PCX = [];
 for (let i = 0; i < 4; i++) { PCX.push(xx + TW[i] / 2); xx += TW[i] + SPW; }
@@ -352,10 +354,10 @@ const stripCX = (i, t) => {
   const a = i < 4 ? lerp(M4[i], M5[i], g5) : M5[i];
   return lerp(a, M6[i], g6);
 };
-const FPOS = []; let fx = 0, fy = 0; const FY0 = 500, FROW = 175, FW = 960;
+const FPOS = []; let fx = 0, fy = 0; const FY0 = 520, FROW = 190, FW = 960;
 for (let i = 0; i < ALL.length; i++) {
   const w = WC[i] * SF;
-  if (fx + w > FW && fx > 0) { fx = 0; fy += FROW; }
+  if ((fx + w > FW && fx > 0) || i === 4) { fx = 0; fy += FROW; }
   FPOS.push({ cx: 60 + fx + w / 2, cy: FY0 + fy + H * SF / 2, row: fy / FROW });
   fx += w + GF;
 }
@@ -425,24 +427,34 @@ M4.forEach((x, i) => {
 
 /* ---------------- scores: vocabulary field + bars ---------------- */
 const FC = 520, FR = 292;
+const BCOL = { blue: '#3D8BFF', red: '#FF4D5E', green: '#00FF87', purple: '#A66BFF', pink: '#FF6EC7', yellow: '#FFD84A' };
 const off = document.createElement('canvas'); off.width = FC; off.height = FR;
 {
   const c = off.getContext('2d'); const R = rnd(7);
   const img = c.createImageData(FC, FR);
   for (let n = 0; n < FC * FR; n++) {
-    const on = n < VOCAB;
-    const b = on ? Math.pow(R(), 2.6) : 0, k = R();
-    const o = n * 4;
-    img.data[o] = on ? 10 + 30 * k * b : 0; img.data[o + 1] = on ? 70 + 185 * b : 0; img.data[o + 2] = on ? 90 + 150 * (1 - k) * b : 0; img.data[o + 3] = on ? 255 : 0;
+    const on = n < VOCAB, x = n % FC, y = (n / FC) | 0, o = n * 4;
+    if (!on) continue;
+    const dx = (x - FC / 2) / (FC / 2), dy = (y - FR / 2) / (FR / 2);
+    const vig = Math.max(0, 1 - .62 * (dx * dx + dy * dy));
+    const neb = .55 + .45 * (Math.sin(x * .045 + Math.sin(y * .03) * 2) + Math.sin(y * .06 + 1.3) + Math.sin((x + y) * .03 + .7)) / 3;
+    const b = (.05 + .95 * Math.pow(R(), 3.2)) * vig * neb, k = R();
+    img.data[o] = 6 + 50 * k * b; img.data[o + 1] = 40 + 215 * b; img.data[o + 2] = 60 + 190 * (1 - k * .6) * b; img.data[o + 3] = 255;
   }
   c.putImageData(img, 0, 0);
   // the 64 tokens above 0.1 % glow; the six we name get their own colour (positions are only illustrative)
-  for (let n = 0; n < 64; n++) { c.fillStyle = 'rgba(190,255,235,.9)'; c.fillRect(Math.floor(R() * FC), Math.floor(R() * FR * .96), 2, 2); }
-}
-const BCOL = { blue: '#3D8BFF', red: '#FF4D5E', green: '#00FF87', purple: '#A66BFF', pink: '#FF6EC7', yellow: '#FFD84A' };
-{
-  const c = off.getContext('2d'); const R = rnd(31);
-  TOP.forEach((tp, i) => { c.fillStyle = BCOL[tp.text.trim()]; c.fillRect(30 + Math.floor(R() * (FC - 60)), 20 + Math.floor(R() * (FR - 60)), 5, 5); });
+  for (let n = 0; n < 64; n++) {
+    const x = 20 + R() * (FC - 40), y = 14 + R() * (FR - 36);
+    const g = c.createRadialGradient(x, y, 0, x, y, 7); g.addColorStop(0, 'rgba(210,255,240,.95)'); g.addColorStop(1, 'rgba(210,255,240,0)');
+    c.fillStyle = g; c.fillRect(x - 7, y - 7, 14, 14);
+  }
+  const R2 = rnd(31);
+  TOP.forEach(tp => {
+    const x = 50 + R2() * (FC - 100), y = 34 + R2() * (FR - 90), col = BCOL[tp.text.trim()];
+    const g = c.createRadialGradient(x, y, 0, x, y, 16); g.addColorStop(0, col); g.addColorStop(.25, col); g.addColorStop(1, 'rgba(0,0,0,0)');
+    c.globalAlpha = .55; c.fillStyle = g; c.fillRect(x - 16, y - 16, 32, 32); c.globalAlpha = 1;
+    c.fillStyle = col; c.fillRect(x - 2.5, y - 2.5, 5, 5);
+  });
 }
 const fctx = $('field').getContext('2d');
 const BAR_MAX = 480, PMAX = TOP[0].p;
@@ -454,7 +466,7 @@ const barRows = TOP.map((tp, i) => {
   $('bars').appendChild(d);
   return { el: d, rl: d.querySelector('.rl'), rb: d.querySelector('.rb'), rv: d.querySelector('.rv'), w: BAR_MAX * tp.p / PMAX };
 });
-$('sumNote').textContent = `6 OF ${fmtInt(VOCAB)} TOKENS SHOWN · THEY HOLD ${(sum(TOP.map(x => x.p)) * 100).toFixed(0)}% OF ALL THE PROBABILITY`;
+$('sumNote').textContent = `6 OF ${fmtInt(VOCAB)} TOKENS SHOWN · TOGETHER ${(sum(TOP.map(x => x.p)) * 100).toFixed(0)}%`;
 const HOPS = [[4, T.pkPicks + .06], [2, T.pkPicks + .28], [1, T.pkPicks + .5], [0, T.pkPicks + .72]];
 
 /* ---------------- loop ring ---------------- */
@@ -539,7 +551,7 @@ function chunk(words) {
 const capsRoot = $('caps');
 const caps = [];
 for (const scene of TL.scenes) {
-  if (scene.id === 'hook') continue;
+  if (scene.id === 'hook' || scene.id === 'cta') continue;      // the big lines on screen already say the same words
   const ch = chunk(scene.words);
   ch.forEach((idx, n) => {
     const el = document.createElement('div'); el.className = 'cap';
@@ -588,9 +600,9 @@ const placeSlot = (el, cx, w, op) => {
 const SRC = {
   tokens: 'REAL RUN · QWEN2.5-0.5B (APACHE-2.0) · TOKENS ARE OFTEN WORD PIECES',
   numbers: 'REAL VALUES FROM THE MODEL · BLUE-GREEN = NEGATIVE / POSITIVE',
-  layers: 'REAL RUN · ONE OF 336 ATTENTION HEADS SHOWN · EACH ROW OF NUMBERS SCALED ALONE',
-  scores: 'REAL PROBABILITIES FROM THE MODEL · SPECK POSITIONS ARE ONLY ILLUSTRATIVE',
-  pick: 'THIS RUN ALWAYS TAKES THE TOP TOKEN · REAL APPS SAMPLE, SO ANSWERS VARY',
+  layers: 'REAL RUN · 1 OF 336 ATTENTION HEADS SHOWN · COLOURS SCALED PER LAYER',
+  scores: 'REAL PROBABILITIES · DOT POSITIONS ARE ONLY ILLUSTRATIVE',
+  pick: 'THIS RUN TAKES THE TOP TOKEN · REAL APPS SAMPLE, SO ANSWERS VARY',
   repeat: 'REAL OUTPUT OF THE SAME RUN · A BASE MODEL, NOT A CHAT-TUNED ONE',
 };
 
@@ -626,20 +638,20 @@ function update(t) {
   });
 
   /* ===== tokens ===== */
-  const mcA = win(t, S.tokens.start + .2, T.promptIn + .15, .4, .35);
+  const mcA = win(t, S.tokens.start + .2, T.promptIn - .05, .4, .3);
   const mc = $('modelCard');
   mc.style.opacity = mcA;
-  mc.style.transform = `translateY(${(1 - easeOut(prog(t, S.tokens.start + .2, .55))) * 40 - easeIn(prog(t, T.promptIn - .15, .3)) * 40}px)`;
+  mc.style.transform = `translateY(${(1 - easeOut(prog(t, S.tokens.start + .2, .55))) * 40 - easeIn(prog(t, T.promptIn - .35, .3)) * 40}px)`;
   const nE = easeOut(prog(t, T.nameCue - .05, .5));
   $('mName').style.opacity = nE; $('mName').style.transform = `translateY(${(1 - nE) * 26}px)`;
   $('mLic').style.opacity = easeOut(prog(t, T.licCue, .4));
   $('mParams').style.opacity = easeOut(prog(t, T.paramCue - .15, .3));
-  $('mParamsN').textContent = fmtInt(D.model.params * easeOut(prog(t, T.paramCue - .1, .75)));
+  $('mParamsN').textContent = fmtInt(D.model.params * easeOut(prog(t, T.paramCue - .1, .6)));
 
-  $('promptBox').style.opacity = win(t, T.promptIn, T.cut + .45, .35, .4);
+  $('promptBox').style.opacity = win(t, T.promptIn + .05, T.cut + .45, .3, .4);
   const nVis = T.wordCue.filter(c => t >= c).length;
   const caretX = nVis === 0 ? PCX[0] - TW[0] / 2 - 6 : PCX[nVis - 1] + TW[nVis - 1] / 2 + 10;
-  const caretOn = t >= T.promptIn + .1 && t < T.cut + .02;
+  const caretOn = t >= T.promptIn + .15 && t < T.cut + .02;
   $('caret').style.left = caretX + 'px'; $('caret').style.top = (CYP - 39) + 'px';
   $('caret').style.opacity = caretOn ? (Math.sin(t * 11) > -.3 ? 1 : .1) : 0;
   const cl = easeInOut(prog(t, T.cut, .6));
@@ -682,6 +694,7 @@ function update(t) {
   /* ===== layers ===== */
   const lw = win(t, S.layers.start + .35, S.scores.start + .35, .35, .4);
   $('layersWrap').style.opacity = lw;
+  $('lyBlock').style.opacity = easeOut(prog(t, S.layers.start + .9, .3));       // not while the tile is still sliding past it
   const pos = layerPos(t), nLay = Math.round(pos);
   const bt = easeOut(prog(t, S.layers.start + .1, .5)) * (1 - easeIn(prog(t, S.scores.start + .05, .55)));
   const bE = easeInOut(prog(t, S.layers.start + .1, .9));
@@ -784,11 +797,12 @@ function update(t) {
     } else if (i === 4) {
       const e = easeInOut(prog(t, T.pkAdds, .6)), u = 1 - e;
       const x1 = stripCX(4, t), y1 = CYS, x0 = BLUE_X0, y0 = rowCY(0);
-      cx = u * u * x0 + 2 * u * e * x0 + e * e * x1;
-      cy = u * u * y0 + 2 * u * e * y1 + e * e * y1;
+      cx = u * u * x0 + 2 * u * e * x1 + e * e * x1;
+      cy = u * u * y0 + 2 * u * e * y0 + e * e * y1;
       s = lerp(.72, SM, e); w = lerp(TW[4], WC[4], e); box = e; op = clamp(prog(t, T.pkAdds - .02, .1));
-      const gf = easeInOut(prog(t, S.repeat.start + .02 + .05 * 4, .75));
-      cx = lerp(cx, FPOS[4].cx, gf); cy = lerp(cy, FPOS[4].cy, gf); s = lerp(s, SF, gf);
+      // leaves first and drops before it slides left, so it never crosses the sentence chips or the ring
+      const gfY = easeInOut(prog(t, S.repeat.start - .03, .42)), gfX = easeInOut(prog(t, S.repeat.start + .03, .39));
+      cx = lerp(cx, FPOS[4].cx, gfX); cy = lerp(cy, FPOS[4].cy, gfY); s = lerp(s, SF, gfY);
     } else {
       const ta = T.rpFirst + (i - 5) * .27, e = easeOutBack(prog(t, ta, .38));
       cx = FPOS[i].cx; cy = FPOS[i].cy + (1 - clamp(e, 0, 1.1)) * 26; s = SF * (.72 + .28 * clamp(e, 0, 1.12)); w = WC[i]; box = 1;
@@ -817,6 +831,7 @@ function update(t) {
   $('legend').style.opacity = easeOut(prog(t, T.rpFirst + 1.0, .4)) * out;
 
   /* ===== CTA ===== */
+  $('ctaScrim').style.opacity = easeOut(prog(t, S.cta.start - .15, .5));
   const aOut = 1 - easeIn(prog(t, T.ctaFollow - .3, .22));
   for (const [id, c, dy] of [['ctaA1', T.ctaNo, 30], ['ctaA2', T.ctaJust, 36]]) {
     const e = easeOut(prog(t, c - .04, .45)), el = $(id);
@@ -840,7 +855,7 @@ function update(t) {
       const pop = current ? easeOutBack(prog(t, w.s, .16)) : 1;
       sp.style.color = current ? '#00FF87' : '#FFFFFF';
       sp.style.opacity = started ? 1 : .42;
-      sp.style.transform = `scale(${current ? 1 + .1 * clamp(pop, 0, 1.2) : 1})`;
+      sp.style.transform = `scale(${current ? 1 + .07 * clamp(pop, 0, 1.2) : 1})`;
     });
   }
   $('caps').style.transform = t >= S.cta.start + .04 ? 'translateY(230px)' : 'none';
