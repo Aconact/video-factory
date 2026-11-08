@@ -44,6 +44,7 @@ def main():
     ap.add_argument("--out", required=True)
     ap.add_argument("--preset", default="slow")
     ap.add_argument("--crf", default="18")
+    ap.add_argument("--maxrate", default="", help="e.g. 4800k: caps the bit rate (keeps the file under an upload limit)")
     ap.add_argument("--limit", type=int, default=0, help="only the first N frames (for quick tests)")
     ap.add_argument("--start", type=int, default=0, help="first frame (for quick tests; audio is cut to match)")
     args = ap.parse_args()
@@ -94,7 +95,8 @@ def main():
         audio_in = ["-ss", "%.4f" % (args.start / FPS), "-i", args.audio]
     cmd = ["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", "%dx%d" % (W, H),
            "-r", str(FPS), "-i", "-"] + audio_in + ["-vf", vf,
-           "-c:v", "libx264", "-preset", args.preset, "-crf", str(args.crf), "-profile:v", "high",
+           "-c:v", "libx264", "-preset", args.preset, "-crf", str(args.crf), "-profile:v", "high"] + (
+               ["-maxrate", args.maxrate, "-bufsize", "%dk" % (2 * int(args.maxrate.rstrip("k")))] if args.maxrate else []) + [
            "-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709", "-color_range", "tv",
            "-c:a", "aac", "-b:a", "192k", "-ar", "48000", "-movflags", "+faststart", "-shortest", args.out]
     enc = subprocess.Popen(cmd, stdin=subprocess.PIPE)
