@@ -1,0 +1,203 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>pkg-test overlay</title>
+<style>
+@font-face { font-family: "InterV"; src: url("http://app.local/fonts/Inter.ttf"); font-weight: 100 900; }
+@font-face { font-family: "JBM"; src: url("http://app.local/fonts/JetBrainsMono.ttf"); font-weight: 100 800; }
+html, body { margin: 0; padding: 0; background: transparent; }
+#stage { position: relative; width: 1080px; height: 1920px; overflow: hidden; font-family: InterV, sans-serif; color: #F2FBFF; }
+#lines { position: absolute; left: 0; top: 0; width: 1080px; height: 1920px; }
+.lead { fill: none; stroke: rgba(240, 252, 255, .92); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 5px rgba(0, 245, 255, .55)); }
+.ring { fill: none; stroke: rgba(240, 252, 255, .95); stroke-width: 2.4; }
+.dot { fill: #00FF87; filter: drop-shadow(0 0 6px rgba(0, 255, 135, .9)); }
+.ping { fill: none; stroke: rgba(0, 245, 255, .9); stroke-width: 2; }
+
+.pill { position: absolute; left: 0; top: 0; padding: 14px 22px 16px; border-radius: 16px; white-space: nowrap; opacity: 0; will-change: transform, opacity;
+  background: linear-gradient(180deg, rgba(4, 15, 21, .80), rgba(2, 9, 13, .86)); border: 1.6px solid rgba(0, 245, 255, .6);
+  box-shadow: 0 0 30px rgba(0, 245, 255, .16), 0 12px 34px rgba(0, 0, 0, .5); }
+.pill.g { border-color: rgba(0, 255, 135, .62); box-shadow: 0 0 30px rgba(0, 255, 135, .16), 0 12px 34px rgba(0, 0, 0, .5); }
+.pill .tt { font-family: JBM, monospace; font-weight: 800; font-size: 30px; letter-spacing: .12em; color: #00F5FF; }
+.pill.g .tt { color: #00FF87; }
+.pill .sb { margin-top: 7px; font-weight: 600; font-size: 26px; letter-spacing: -.005em; color: rgba(238, 248, 252, .96); }
+
+#title { position: absolute; left: 0; width: 1080px; top: 262px; text-align: center; opacity: 0; }
+#title .l1 { font-weight: 900; font-size: 100px; line-height: 1.04; letter-spacing: -.03em; text-transform: uppercase; text-shadow: 0 6px 36px rgba(0, 0, 0, .7); }
+#title .l1 .g { color: #00FF87; text-shadow: 0 0 44px rgba(0, 255, 135, .55); }
+#title .l2 { margin-top: 22px; font-family: JBM, monospace; font-weight: 700; font-size: 32px; letter-spacing: .2em; color: #00F5FF; text-shadow: 0 2px 18px rgba(0, 0, 0, .8); }
+.w { display: inline-block; opacity: 0; will-change: transform, opacity; }
+
+#kicker { position: absolute; left: 0; width: 1080px; top: 262px; text-align: center; opacity: 0; font-weight: 900; font-size: 84px; line-height: 1.06; letter-spacing: -.028em; text-transform: uppercase; text-shadow: 0 6px 36px rgba(0, 0, 0, .75); }
+#kicker .g { color: #00FF87; text-shadow: 0 0 44px rgba(0, 255, 135, .55); }
+#kicker .c { color: #00F5FF; text-shadow: 0 0 44px rgba(0, 245, 255, .5); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <svg id="lines" viewBox="0 0 1080 1920" xmlns="http://www.w3.org/2000/svg"></svg>
+  <div id="pills"></div>
+  <div id="title">
+    <div class="l1"><span class="w">INSIDE</span> <span class="w">AN</span> <span class="w g">AI</span> <span class="w g">CHIP</span></div>
+    <div class="l2 w" id="titleSub">THE LAYERS THAT DO THE MATH</div>
+  </div>
+  <div id="kicker"><span class="w">MEMORY</span> <span class="w g">FEEDS</span><br><span class="w">THE</span> <span class="w c">DIE</span></div>
+</div>
+<script>
+const FPS = 30, NF = 150;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, k) => a + (b - a) * k;
+const easeOut = (x) => 1 - Math.pow(1 - clamp(x, 0, 1), 3);
+const easeInOut = (x) => { x = clamp(x, 0, 1); return x * x * (3 - 2 * x); };
+const prog = (t, t0, d) => clamp((t - t0) / d, 0, 1);
+
+// callouts: which point of the 3D model they follow, which side the text sits on, when they live
+const LABELS = [
+  { id: 'lid',        anchor: 'lid',        side: 'R', cls: '',  title: 'HEAT SPREADER',      sub: 'Pulls heat out of the chip', tIn: 1.95, tOut: 2.85, dy: -150 },
+  { id: 'tim',        anchor: 'tim',        side: 'R', cls: '',  title: 'THERMAL PAD',        sub: 'Carries heat up to the lid', tIn: 2.20, tOut: 3.05, dy: 0 },
+  { id: 'hbm',        anchor: 'hbm',        side: 'R', cls: 'g', title: 'HBM MEMORY',         sub: 'Stacked memory layers',      tIn: 2.45, tOut: 99, dy: 20, park: { y: 640, from: 3.25 } },
+  { id: 'die',        anchor: 'die',        side: 'L', cls: 'g', title: 'COMPUTE DIE',        sub: 'Where the math happens',     tIn: 2.70, tOut: 99, dy: 10, park: { y: 640, from: 3.25 } },
+  { id: 'interposer', anchor: 'interposer', side: 'L', cls: '',  title: 'SILICON INTERPOSER', sub: 'Wires memory to the die',    tIn: 2.95, tOut: 4.15, dy: 0 },
+  { id: 'substrate',  anchor: 'substrate',  side: 'L', cls: '',  title: 'SUBSTRATE',          sub: 'Brings power and signals',   tIn: 3.20, tOut: 3.85, dy: 0 },
+];
+const MIN_GAP = 128;
+let A = null;           // anchors per frame
+const Y = {};           // label y per frame (precomputed, so renderFrame is a pure function of t)
+const SIZE = {};        // pill sizes
+
+function anchorAt(name, f) {                  // f may be fractional, 1-based
+  const f0 = clamp(Math.floor(f), 1, NF), f1 = clamp(f0 + 1, 1, NF), k = f - f0;
+  const a = A[String(f0)][name], b = A[String(f1)][name];
+  return [lerp(a[0], b[0], k), lerp(a[1], b[1], k)];
+}
+
+function buildDom() {
+  const pills = document.getElementById('pills');
+  const svg = document.getElementById('lines');
+  const ns = 'http://www.w3.org/2000/svg';
+  for (const l of LABELS) {
+    const p = document.createElement('div');
+    p.className = 'pill ' + l.cls;
+    p.innerHTML = `<div class="tt">${l.title}</div><div class="sb">${l.sub}</div>`;
+    pills.appendChild(p);
+    l.el = p;
+    const r = p.getBoundingClientRect();
+    SIZE[l.id] = { w: r.width, h: r.height };
+    l.path = document.createElementNS(ns, 'path'); l.path.setAttribute('class', 'lead'); svg.appendChild(l.path);
+    l.ping = document.createElementNS(ns, 'circle'); l.ping.setAttribute('class', 'ping'); svg.appendChild(l.ping);
+    l.ring = document.createElementNS(ns, 'circle'); l.ring.setAttribute('class', 'ring'); l.ring.setAttribute('r', 10); svg.appendChild(l.ring);
+    l.dot = document.createElementNS(ns, 'circle'); l.dot.setAttribute('class', 'dot'); l.dot.setAttribute('r', 4.6); svg.appendChild(l.dot);
+  }
+}
+
+function precompute() {
+  for (const l of LABELS) Y[l.id] = new Array(NF + 2).fill(null);
+  for (let f = 1; f <= NF; f++) {
+    const t = (f - 1) / FPS;
+    for (const side of ['L', 'R']) {
+      const group = LABELS.filter((l) => l.side === side && t >= l.tIn - 0.25 && t <= l.tOut + 0.4);
+      for (const l of group) {
+        const a = anchorAt(l.anchor, f);
+        let y = a[1] + l.dy;
+        if (l.park) y = lerp(y, l.park.y, easeInOut(prog(t, l.park.from, 0.7)));
+        l._y = y;
+      }
+      group.sort((p, q) => p._y - q._y);
+      for (let i = 1; i < group.length; i++) group[i]._y = Math.max(group[i]._y, group[i - 1]._y + MIN_GAP);
+      for (const l of group) Y[l.id][f] = l._y;
+    }
+  }
+  for (const l of LABELS) {                    // fill gaps with the nearest value, then smooth
+    const arr = Y[l.id];
+    let first = arr.findIndex((v) => v !== null), last = arr.length - 1;
+    while (last > 0 && arr[last] === null) last--;
+    if (first < 0) { for (let f = 1; f <= NF; f++) arr[f] = 0; continue; }
+    for (let f = 1; f <= NF; f++) arr[f] = arr[clamp(f, first, last)];
+    const sm = arr.slice();
+    for (let f = 1; f <= NF; f++) {
+      let s = 0, c = 0;
+      for (let d = -5; d <= 5; d++) { const g = clamp(f + d, 1, NF); s += arr[g]; c++; }
+      sm[f] = s / c;
+    }
+    Y[l.id] = sm;
+  }
+}
+
+function yAt(l, f) {
+  const f0 = clamp(Math.floor(f), 1, NF), f1 = clamp(f0 + 1, 1, NF);
+  return lerp(Y[l.id][f0], Y[l.id][f1], f - f0);
+}
+
+function drawLabels(t) {
+  const f = t * FPS + 1;
+  for (const l of LABELS) {
+    const sz = SIZE[l.id];
+    const inP = easeOut(prog(t, l.tIn, 0.32));
+    const outP = easeInOut(prog(t, l.tOut, 0.28));
+    const alphaT = inP * (1 - outP);
+    const a = anchorAt(l.anchor, f);
+    const edge = Math.min(a[0] - 30, 1050 - a[0], a[1] - 120, 1790 - a[1]);
+    const alpha = alphaT * clamp(edge / 40, 0, 1);
+    const show = alpha > 0.002;
+    for (const el of [l.el, l.path, l.ping, l.ring, l.dot]) el.style.display = show ? '' : 'none';
+    if (!show) continue;
+    const y = yAt(l, f);
+    const left = l.side === 'R' ? 1030 - sz.w : 50;
+    const slide = (1 - easeOut(prog(t, l.tIn + 0.10, 0.4))) * (l.side === 'R' ? 36 : -36);
+    l.el.style.opacity = alpha * easeOut(prog(t, l.tIn + 0.10, 0.3));
+    l.el.style.transform = `translate(${left + slide}px, ${y - sz.h / 2}px)`;
+    const px = l.side === 'R' ? left : left + sz.w;
+    const ex = l.side === 'R' ? px - 54 : px + 54;
+    l.path.setAttribute('d', `M ${a[0].toFixed(1)} ${a[1].toFixed(1)} L ${ex.toFixed(1)} ${y.toFixed(1)} L ${px.toFixed(1)} ${y.toFixed(1)}`);
+    const len = l.path.getTotalLength();
+    const draw = easeOut(prog(t, l.tIn, 0.38));
+    l.path.style.strokeDasharray = len;
+    l.path.style.strokeDashoffset = len * (1 - draw);
+    l.path.style.opacity = alpha;
+    l.ring.setAttribute('cx', a[0]); l.ring.setAttribute('cy', a[1]); l.dot.setAttribute('cx', a[0]); l.dot.setAttribute('cy', a[1]);
+    const pop = easeOut(prog(t, l.tIn - 0.02, 0.22));
+    l.ring.style.opacity = alpha * pop; l.dot.style.opacity = alpha * pop;
+    l.ring.setAttribute('r', 10 * (0.4 + 0.6 * pop));
+    const ph = ((t - l.tIn) % 1.4) / 1.4;
+    l.ping.setAttribute('cx', a[0]); l.ping.setAttribute('cy', a[1]);
+    l.ping.setAttribute('r', 10 + 24 * ph);
+    l.ping.style.opacity = alpha * (1 - ph) * 0.8 * pop;
+  }
+}
+
+function words(root, t, t0, gap, dur, rise) {
+  const ws = root.querySelectorAll('.w');
+  ws.forEach((w, i) => {
+    const p = easeOut(prog(t, t0 + i * gap, dur));
+    w.style.opacity = p;
+    w.style.transform = `translateY(${(1 - p) * rise}px)`;
+  });
+}
+
+function drawTitle(t) {
+  const el = document.getElementById('title');
+  const out = easeInOut(prog(t, 1.50, 0.38));
+  el.style.opacity = t < 1.95 ? 1 - out : 0;
+  words(el, t, 0.05, 0.07, 0.34, 34);
+  el.style.transform = `translateY(${-30 * out}px) scale(${1 + 0.02 * out})`;
+  const k = document.getElementById('kicker');
+  const inn = easeOut(prog(t, 3.72, 0.3));
+  k.style.opacity = t >= 3.7 ? 1 : 0;
+  words(k, t, 3.74, 0.09, 0.34, 34);
+}
+
+window.renderFrame = (t) => { drawTitle(t); drawLabels(t); };
+
+(async () => {
+  const r = await fetch('http://app.local/anchors.json');
+  A = (await r.json()).anchors;
+  await document.fonts.ready;
+  await Promise.all([document.fonts.load('800 30px JBM'), document.fonts.load('600 26px InterV'), document.fonts.load('900 100px InterV')]);
+  buildDom();
+  precompute();
+  window.renderFrame(0);
+  window.sceneReady = true;
+})();
+</script>
+</body>
+</html>

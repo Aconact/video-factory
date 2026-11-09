@@ -4,9 +4,9 @@
 #   samples  Cycles samples per pixel
 #   fstart / fend  first and last frame of the shot       frames  optional preview list (1,45,90 or 1-10)
 #   shards   parallel GitHub jobs that share the frames
-job=nn
+job=pkg
 pct=100
-samples=12
+samples=32
 fstart=1
-fend=135
+fend=150
 shards=20
