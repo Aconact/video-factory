@@ -97,10 +97,14 @@ def bell(f, dur=0.5):
             0.18 * np.sin(2 * np.pi * f * 5.4 * t) * np.exp(-t / (dur * 0.07)))
 
 
-def thump(f, length, drop=1.6):
+def thump(f, length, drop=1.6, knock=0.9):
+    """Low boom plus a mid-range knock (a phone speaker cannot play the boom, so the knock carries the hit)."""
     t = tt(length)
     fr = f * (1 + drop * np.exp(-t * 18))
-    return np.sin(2 * np.pi * np.cumsum(fr) / SR) * np.exp(-t / (length / 4.0)) * smooth(0, 0.004, t)
+    boom = np.sin(2 * np.pi * np.cumsum(fr) / SR) * np.exp(-t / (length / 4.0)) * smooth(0, 0.004, t)
+    thud = np.sin(2 * np.pi * np.cumsum(f * 3.2 * (1 + 0.7 * np.exp(-t * 30))) / SR) * np.exp(-t / 0.075) * smooth(0, 0.002, t)
+    knk = bp(rng.standard_normal(len(t)), 260, 1500) * np.exp(-t / 0.028) * smooth(0, 0.001, t)
+    return boom * 0.8 + knock * (0.55 * thud + 0.45 * knk)
 
 
 def whoosh(length, f_lo, f_hi, bands=7):
@@ -128,11 +132,11 @@ def sweep(length, f0, f1):
 # ---------------------------------------------------------------- pad + sub bed
 pad_lo = np.zeros(N)
 pad_hi = np.zeros(N)
-for f in (110.0, 164.81, 220.0, 261.63, 329.63):
+for f, wgt in ((110.0, 0.30), (220.0, 1.0), (329.63, 1.0), (440.0, 1.0), (523.25, 0.9), (659.26, 0.8)):
     for det in (-0.0023, 0.0023):
-        saw = signal.sawtooth(2 * np.pi * np.cumsum(np.full(N, f * (1 + det))) / SR + rng.uniform(0, 6.28))
-        pad_lo += lp(saw, 420)
-        pad_hi += lp(saw, 2200)
+        saw = signal.sawtooth(2 * np.pi * np.cumsum(np.full(N, f * (1 + det))) / SR + rng.uniform(0, 6.28)) * wgt
+        pad_lo += lp(saw, 700)
+        pad_hi += lp(saw, 3000)
 open_f = smooth(0.0, 3.6, T)
 pad = (pad_lo * (1 - open_f) + pad_hi * open_f) / 10.0
 lift = np.zeros(N)                         # a brighter open fifth joins when the die lights up
@@ -142,7 +146,7 @@ pad += lift * smooth(3.2, 3.8, T) * 0.55
 pad *= (0.30 + 0.70 * smooth(0.0, 1.6, T)) * (1.0 + 0.10 * np.sin(2 * np.pi * 0.25 * T))
 sub = np.sin(2 * np.pi * np.cumsum(np.full(N, 55.0)) / SR) * (0.4 + 0.6 * smooth(0.0, 1.0, T))
 for ch, d in ((0, -0.0006), (1, 0.0006)):
-    DRY[ch] += pad * db(-24.0) + sub * db(-27.0)
+    DRY[ch] += pad * db(-26.0) + sub * db(-37.0)
 SEND += pad * db(-34.0)
 air = bp(rng.standard_normal(N), 2800, 9500) * db(-52.0) * (0.3 + 0.7 * smooth(0.0, 2.4, T))
 DRY[0] += air
