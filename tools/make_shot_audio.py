@@ -1,8 +1,19 @@
-"""Synthesised sound design for the package test shot (5 s, 48 kHz stereo): a soft ambient bed, a rising swell while the
-layers come apart, label ticks, a power-up sweep when the die lights, and tiny data chirps. Pure numpy/scipy, no samples.
+"""Synthesised sound design for the package test shot (5 s, 48 kHz stereo), version 2.
 
-    python3 tools/make_shot_audio.py out.wav
+Everything is generated (numpy/scipy only, no samples, no licences to worry about):
+  * a soft evolving pad (A minor, lifting a chord when the die lights) plus a sub-bass bed
+  * metal "slide + tick" foley (modal resonators) when the layers of the package lift apart
+  * a glint whoosh for the light that sweeps across the lid
+  * a rising pentatonic bell for each label, panned to the side the label appears on
+  * tiny clicks as the memory stacks come apart (top die first)
+  * sub hit + rising power-up sweep when the die lights, an impact on the kicker title, tiny data chirps afterwards
+  * a synthetic room (decaying stereo noise impulse response) so every sound sits in the same space
+
+    python3 tools/make_shot_audio.py out.wav [target_lufs]
+
+The result is polished synthetic sound, not a recording: real foley or licensed music would still sound richer.
 """
+import subprocess
 import sys
 import wave
 
@@ -13,126 +24,209 @@ SR = 48000
 DUR = 5.0
 N = int(SR * DUR)
 T = np.arange(N) / SR
-rng = np.random.default_rng(5)
+rng = np.random.default_rng(7)
 
 
 def db(x):
     return 10 ** (x / 20.0)
 
 
-def smooth(x0, x1, t):
-    k = np.clip((t - x0) / (x1 - x0), 0, 1)
+def smooth(a, b, t):
+    k = np.clip((t - a) / (b - a), 0, 1)
     return k * k * (3 - 2 * k)
 
 
-def band_noise(f_lo, f_hi, order=3):
-    sos = signal.butter(order, [f_lo, f_hi], btype="bandpass", fs=SR, output="sos")
-    return signal.sosfilt(sos, rng.standard_normal(N))
+def bp(x, lo, hi, order=2):
+    return signal.sosfilt(signal.butter(order, [lo, min(hi, SR / 2 - 200)], btype="bandpass", fs=SR, output="sos"), x)
 
 
-def swell(t_start, t_peak, t_end, f_lo, f_hi, gain_db, bands=7):
-    """Filtered noise whose centre frequency glides f_lo -> f_hi across the swell (cross-faded band-pass banks)."""
+def lp(x, f, order=2):
+    return signal.sosfilt(signal.butter(order, f, btype="lowpass", fs=SR, output="sos"), x)
+
+
+def hp(x, f, order=2):
+    return signal.sosfilt(signal.butter(order, f, btype="highpass", fs=SR, output="sos"), x)
+
+
+DRY = np.zeros((2, N))
+SEND = np.zeros(N)
+
+
+def place(sig, t0, gain_db=0.0, pan=0.0, wet_db=-12.0):
+    """Mix a short signal into the dry bus at t0 (seconds); `wet_db` is how much of it goes to the room."""
+    i0 = int(round(t0 * SR))
+    if i0 >= N:
+        return
+    n = min(len(sig), N - i0)
+    s = sig[:n] * db(gain_db)
+    ang = (pan + 1.0) * np.pi / 4.0
+    DRY[0, i0:i0 + n] += s * np.cos(ang)
+    DRY[1, i0:i0 + n] += s * np.sin(ang)
+    SEND[i0:i0 + n] += s * db(wet_db)
+
+
+def tt(dur):
+    return np.arange(int(dur * SR)) / SR
+
+
+def modal(f0, ratios, decays, amps, dur):
+    t = tt(dur)
+    out = np.zeros_like(t)
+    for r, d, a in zip(ratios, decays, amps):
+        out += a * np.sin(2 * np.pi * f0 * r * t + rng.uniform(0, 6.28)) * np.exp(-t / d)
+    return out
+
+
+def tick(dur=0.02):
+    """A very short filtered click (the 'contact' part of a mechanical sound)."""
+    t = tt(dur)
+    return hp(rng.standard_normal(len(t)), 1800) * np.exp(-t / (dur / 4.0))
+
+
+def metal_slide(f0, length=0.55):
+    """A plate sliding off the stack: a scrape of band-passed noise under a ringing metal tone."""
+    t = tt(length)
+    scrape = bp(rng.standard_normal(len(t)), 1800, 6500) * (smooth(0, 0.04, t) * (1 - smooth(0.12, 0.45, t))) * 0.35
+    ring = modal(f0, (1.0, 2.76, 5.40, 8.93), (0.28, 0.17, 0.09, 0.05), (1.0, 0.55, 0.30, 0.16), length)
+    return scrape + ring * 0.8 + np.pad(tick(), (0, max(0, len(t) - int(0.02 * SR))))[:len(t)] * 0.6
+
+
+def bell(f, dur=0.5):
+    t = tt(dur)
+    return (np.sin(2 * np.pi * f * t) * np.exp(-t / (dur * 0.30)) + 0.40 * np.sin(2 * np.pi * f * 2.76 * t) * np.exp(-t / (dur * 0.14)) +
+            0.18 * np.sin(2 * np.pi * f * 5.4 * t) * np.exp(-t / (dur * 0.07)))
+
+
+def thump(f, length, drop=1.6):
+    t = tt(length)
+    fr = f * (1 + drop * np.exp(-t * 18))
+    return np.sin(2 * np.pi * np.cumsum(fr) / SR) * np.exp(-t / (length / 4.0)) * smooth(0, 0.004, t)
+
+
+def whoosh(length, f_lo, f_hi, bands=7):
+    """Band-passed noise whose centre glides from f_lo to f_hi (cross-faded filter bank), shaped like a swell."""
+    t = tt(length)
     freqs = np.geomspace(f_lo, f_hi, bands)
-    pos = np.linspace(t_start, t_end, bands)
-    env = np.interp(T, [t_start, t_peak, t_end], [0, 1, 0], left=0, right=0) ** 1.6
-    out = np.zeros(N)
+    pos = np.linspace(0, length, bands)
+    out = np.zeros_like(t)
     for f, p in zip(freqs, pos):
-        w = np.exp(-0.5 * ((T - p) / ((t_end - t_start) / (bands * 0.9))) ** 2)
-        out += band_noise(f * 0.7, min(f * 1.4, SR / 2 - 100)) * w
-    return out * env * db(gain_db) / np.sqrt(bands) * 3.0
+        w = np.exp(-0.5 * ((t - p) / (length / (bands * 0.9))) ** 2)
+        out += bp(rng.standard_normal(len(t)), f * 0.7, f * 1.4) * w
+    env = np.sin(np.pi * np.clip(t / length, 0, 1)) ** 1.8
+    return out * env / np.sqrt(bands) * 3.0
 
 
-def blip(t0, f0, f1, length, gain_db, decay=0.035):
-    t = T - t0
-    m = (t >= 0) & (t < length)
-    fr = f0 + (f1 - f0) * np.clip(t / length, 0, 1)
-    ph = 2 * np.pi * np.cumsum(np.where(m, fr, 0)) / SR
-    return np.where(m, np.sin(ph) * np.exp(-np.clip(t, 0, None) / decay), 0) * db(gain_db)
-
-
-def thump(t0, f, length, gain_db):
-    t = T - t0
-    m = t >= 0
-    fr = f * (1 + 1.6 * np.exp(-np.clip(t, 0, None) * 18))
-    ph = 2 * np.pi * np.cumsum(np.where(m, fr, 0)) / SR
-    return np.where(m, np.sin(ph) * np.exp(-np.clip(t, 0, None) / (length / 4.0)), 0) * db(gain_db)
-
-
-def sweep(t0, t1, f0, f1, gain_db):
-    t = np.clip(T, t0, t1)
-    k = (t - t0) / (t1 - t0)
+def sweep(length, f0, f1):
+    t = tt(length)
+    k = t / length
     fr = f0 * (f1 / f0) ** (k ** 1.5)
-    env = smooth(t0, t0 + (t1 - t0) * 0.7, T) * (1 - smooth(t1 - 0.12, t1 + 0.35, T)) * (T >= t0)
-    ph = 2 * np.pi * np.cumsum(fr * (T >= t0)) / SR
-    return (np.sin(ph) + 0.35 * np.sin(2 * ph) + 0.15 * np.sin(3 * ph)) * env * db(gain_db)
+    ph = 2 * np.pi * np.cumsum(fr) / SR
+    env = smooth(0, length * 0.7, t) * (1 - smooth(length - 0.12, length + 0.3, t))
+    return (np.sin(ph) + 0.35 * np.sin(2 * ph) + 0.15 * np.sin(3 * ph)) * env
 
 
-L = np.zeros(N)
-R = np.zeros(N)
+# ---------------------------------------------------------------- pad + sub bed
+pad_lo = np.zeros(N)
+pad_hi = np.zeros(N)
+for f in (110.0, 164.81, 220.0, 261.63, 329.63):
+    for det in (-0.0023, 0.0023):
+        saw = signal.sawtooth(2 * np.pi * np.cumsum(np.full(N, f * (1 + det))) / SR + rng.uniform(0, 6.28))
+        pad_lo += lp(saw, 420)
+        pad_hi += lp(saw, 2200)
+open_f = smooth(0.0, 3.6, T)
+pad = (pad_lo * (1 - open_f) + pad_hi * open_f) / 10.0
+lift = np.zeros(N)                         # a brighter open fifth joins when the die lights up
+for f in (246.94, 369.99, 493.88):
+    lift += lp(signal.sawtooth(2 * np.pi * np.cumsum(np.full(N, f)) / SR), 3000) * 0.33
+pad += lift * smooth(3.2, 3.8, T) * 0.55
+pad *= (0.30 + 0.70 * smooth(0.0, 1.6, T)) * (1.0 + 0.10 * np.sin(2 * np.pi * 0.25 * T))
+sub = np.sin(2 * np.pi * np.cumsum(np.full(N, 55.0)) / SR) * (0.4 + 0.6 * smooth(0.0, 1.0, T))
+for ch, d in ((0, -0.0006), (1, 0.0006)):
+    DRY[ch] += pad * db(-24.0) + sub * db(-27.0)
+SEND += pad * db(-34.0)
+air = bp(rng.standard_normal(N), 2800, 9500) * db(-52.0) * (0.3 + 0.7 * smooth(0.0, 2.4, T))
+DRY[0] += air
+DRY[1] += np.roll(air, 211)
 
-# ambient bed: three slightly detuned voices (A1, A2, E3) with slow movement, lifting as the shot opens up
-bed_env = 0.35 + 0.65 * smooth(0.0, 2.4, T)
-for f, g, d in ((55.0, -23.0, 0.18), (110.0, -25.0, 0.25), (164.8, -29.0, 0.3), (220.0, -33.0, 0.35)):
-    vib = 1 + 0.0025 * np.sin(2 * np.pi * 0.23 * T)
-    L += np.sin(2 * np.pi * np.cumsum(f * (1 - d * 0.01) * vib) / SR) * db(g) * bed_env
-    R += np.sin(2 * np.pi * np.cumsum(f * (1 + d * 0.01) * vib) / SR + 0.7) * db(g) * bed_env
-air = band_noise(2500, 9000)
-L += air * db(-50) * bed_env
-R += np.roll(air, 211) * db(-50) * bed_env
+# ---------------------------------------------------------------- opening glide and the glint on the lid
+place(whoosh(0.9, 250, 1800), 0.0, -26.0, pan=-0.2, wet_db=-8.0)
+place(whoosh(0.75, 600, 5200), 1.0, -25.0, pan=0.35, wet_db=-6.0)         # the light sweeping across the lid
 
-# opening: a low whoosh as the camera glides in
-L += swell(0.0, 0.55, 1.15, 250, 1600, -25)
-R += swell(0.02, 0.57, 1.17, 250, 1600, -25)
+# ---------------------------------------------------------------- the layers lift apart (lid, pad, interposer, die)
+for t0, f0, pan in ((0.98, 520.0, 0.5), (1.18, 430.0, 0.2), (1.40, 360.0, -0.2), (1.62, 300.0, -0.5)):
+    place(metal_slide(f0), t0, -21.0, pan, wet_db=-9.0)
+place(whoosh(2.0, 180, 4800), 0.9, -28.0, pan=0.0, wet_db=-6.0)
+place(thump(52.0, 0.7), 0.98, -19.0, 0.0, wet_db=-14.0)
 
-# the layers come apart: a rising swell plus a short air burst for each layer
-L += swell(0.85, 1.9, 2.9, 180, 5200, -22)
-R += swell(0.87, 1.92, 2.92, 180, 5200, -22)
-for t0, f_lo, f_hi, side in ((0.95, 700, 3200, 0.8), (1.08, 500, 2600, 0.5), (1.22, 380, 2000, 0.3), (1.36, 300, 1500, 0.2)):
-    burst = band_noise(f_lo, f_hi) * np.exp(-np.clip(T - t0, 0, None) / 0.12) * (T >= t0) * db(-28)
-    L += burst * (1 - side * 0.4)
-    R += burst * (1 + side * 0.4)
-thumps = thump(0.95, 52, 0.7, -17)
-L += thumps
-R += thumps
+# ---------------------------------------------------------------- label bells (right labels first, then left)
+for t0, f, pan in ((1.95, 659.3, 0.55), (2.20, 784.0, 0.55), (2.45, 880.0, 0.55), (2.70, 987.8, -0.55), (2.95, 1174.7, -0.55), (3.20, 1318.5, -0.55)):
+    place(bell(f), t0, -25.0, pan, wet_db=-5.0)
+    place(tick(), t0, -33.0, pan, wet_db=-20.0)
 
-# label ticks (left labels on the left, right labels on the right)
-for t0, side, f in ((1.95, 1, 2100), (2.20, 1, 2300), (2.45, 1, 2500), (2.70, -1, 1900), (2.95, -1, 2100), (3.20, -1, 2300)):
-    b = blip(t0, f, f * 1.25, 0.14, -25, 0.04)
-    L += b * (0.55 if side > 0 else 1.0)
-    R += b * (1.0 if side > 0 else 0.55)
+# ---------------------------------------------------------------- memory stacks come apart (top die first), 8 small clicks
+for k in range(8):
+    t0 = (92.0 + (7 - k) * 1.2) / 30.0
+    clk = modal(1500.0 + 110.0 * (7 - k), (1.0, 2.76), (0.05, 0.03), (1.0, 0.4), 0.18)
+    clk[:int(0.02 * SR)] += tick() * 0.8
+    place(clk, t0, -31.0, pan=rng.uniform(-0.6, 0.6), wet_db=-10.0)
 
-# the die lights up: sub hit, rising sweep, shimmer; then the kicker title lands
-hit = thump(3.20, 46, 0.9, -15)
-L += hit
-R += hit
-sw = sweep(3.2, 4.2, 180.0, 2400.0, -27)
-L += sw
-R += sw * 0.96
-shim = band_noise(5000, 12000) * np.exp(-np.clip(T - 3.74, 0, None) / 0.35) * (T >= 3.74) * db(-33)
-L += shim
-R += np.roll(shim, 97)
-k_hit = thump(3.74, 58, 0.6, -19)
-L += k_hit
-R += k_hit
+# ---------------------------------------------------------------- the die lights up; the kicker lands
+place(thump(46.0, 0.9), 3.18, -15.0, 0.0, wet_db=-12.0)
+place(sweep(1.1, 180.0, 2500.0), 3.18, -28.0, 0.0, wet_db=-7.0)
+place(bp(rng.standard_normal(int(0.9 * SR)), 5200, 12000) * np.exp(-tt(0.9) / 0.35), 3.74, -35.0, 0.0, wet_db=-6.0)
+place(thump(58.0, 0.6), 3.74, -18.0, 0.0, wet_db=-14.0)
+place(modal(880.0, (1.0, 2.76, 5.40), (0.40, 0.22, 0.12), (1.0, 0.5, 0.25), 0.9), 3.74, -30.0, 0.0, wet_db=-3.0)
 
-# tiny data chirps while the pulses run across the interposer
-for t0 in np.sort(rng.uniform(3.35, 4.85, 22)):
+# ---------------------------------------------------------------- data chirps while the lines carry light
+for t0 in np.sort(rng.uniform(3.35, 4.80, 20)):
     f = float(rng.choice([2400, 3000, 3600, 4200, 4800]))
-    c = blip(float(t0), f, f * 1.12, 0.05, -34, 0.014)
-    pan = rng.uniform(0.3, 1.0)
-    L += c * pan
-    R += c * (1.3 - pan)
+    t = tt(0.05)
+    chirp = np.sin(2 * np.pi * np.cumsum(f + 0.12 * f * t / 0.05) / SR) * np.exp(-t / 0.014)
+    place(chirp, float(t0), -36.0, pan=rng.uniform(-0.9, 0.9), wet_db=-12.0)
 
-# gentle fade in/out so the file does not click
-fade = smooth(0.0, 0.05, T) * (1 - smooth(DUR - 0.30, DUR, T))
-L *= fade
-R *= fade
-peak = max(np.abs(L).max(), np.abs(R).max())
-scale = 0.85 / peak
-pcm = (np.stack([L, R], axis=1) * scale * 32767).astype("<i2")
-with wave.open(sys.argv[1], "wb") as w:
-    w.setnchannels(2)
-    w.setsampwidth(2)
-    w.setframerate(SR)
-    w.writeframes(pcm.tobytes())
-print("wrote", sys.argv[1], "peak before scaling %.3f" % peak)
+# ---------------------------------------------------------------- the room
+ir_t = tt(1.9)
+ir = np.stack([lp(hp(rng.standard_normal(len(ir_t)), 180), 9000) * np.exp(-ir_t / 0.42) * smooth(0.0, 0.012, ir_t) for _ in range(2)])
+ir += np.stack([lp(rng.standard_normal(len(ir_t)), 2500) * np.exp(-ir_t / 0.75) * 0.35 for _ in range(2)])
+ir = np.concatenate([np.zeros((2, int(0.014 * SR))), ir], axis=1)
+ir /= np.sqrt((ir ** 2).sum(axis=1, keepdims=True))
+WET = np.stack([signal.fftconvolve(SEND, ir[c])[:N] for c in range(2)])
+mix = DRY + WET * 0.55
+
+fade = smooth(0.0, 0.05, T) * (1 - smooth(DUR - 0.35, DUR, T))
+mix *= fade
+mix = np.tanh(mix * 1.1) / np.tanh(1.1)                               # gentle soft limiting
+
+
+def write(path, x, gain):
+    pcm = (np.clip(x * gain, -1, 1).T * 32767).astype("<i2")
+    with wave.open(path, "wb") as w:
+        w.setnchannels(2)
+        w.setsampwidth(2)
+        w.setframerate(SR)
+        w.writeframes(pcm.tobytes())
+
+
+def lufs(path):
+    out = subprocess.run(["ffmpeg", "-hide_banner", "-nostats", "-i", path, "-af", "ebur128=peak=true", "-f", "null", "-"],
+                         capture_output=True, text=True).stderr
+    for line in out.splitlines()[::-1]:
+        if line.strip().startswith("I:"):
+            return float(line.split()[1])
+    return None
+
+
+out = sys.argv[1]
+target = float(sys.argv[2]) if len(sys.argv) > 2 else -14.0
+peak = np.abs(mix).max()
+g = 0.85 / peak
+write(out, mix, g)
+cur = lufs(out)
+if cur is not None:
+    g2 = g * db(target - cur)
+    if np.abs(mix).max() * g2 > 0.84:                                  # keep ~-1.5 dB true-peak headroom
+        g2 = 0.84 / np.abs(mix).max()
+    write(out, mix, g2)
+    print("wrote %s  (%.1f LUFS before, target %.1f, final peak %.2f)" % (out, cur, target, np.abs(mix).max() * g2))
+else:
+    print("wrote", out, "(loudness not measured)")
