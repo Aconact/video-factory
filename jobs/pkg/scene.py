@@ -706,7 +706,7 @@ def anchor(name, loc, parent):
 
 anchor("lid", (2.3, -1.9, 0.338), G_LID)
 anchor("tim", (2.4, -1.5, 0.268), G_TIM)
-anchor("die", (0.9, -1.1, 0.255), G_DIE)
+anchor("die", (-0.55, 1.08, 0.255), G_DIE)                        # back-left corner: the parked label sits above-left, so its leader does not cross the die
 anchor("hbm", (0.10, 0.0, LAYER_T / 2), HBM_TOP[(1.75, -1.0)])      # follows the top memory die while the stack opens
 anchor("interposer", (-2.3, -1.4, 0.10), G_INT)
 anchor("substrate", (-3.1, -2.3, 0.0), G_SUB)
