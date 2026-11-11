@@ -7,3 +7,9 @@ apple_camera.zip|https://www.apple.com/newsroom/videos/2026/autoplay/09/apple-de
 apple_battery.zip|https://www.apple.com/newsroom/videos/2026/autoplay/09/apple-debuts-iphone-18-pro-and-iphone-18-pro-max/apple-iphone-18-pro-new-battery-designs/downloads/Apple-iPhone-18-Pro-new-battery-designs-260909.zip
 apple_island.zip|https://www.apple.com/newsroom/videos/2026/autoplay/09/apple-debuts-iphone-18-pro-and-iphone-18-pro-max/apple-iphone-18-pro-dynamic-island/downloads/Apple-iPhone-18-Pro-Dynamic-Island-260909.zip
 samsung_images.zip|https://snr-2019-presskits-production.s3.amazonaws.com/samsung_unveils_galaxy_s26_series_the_most_intuitive_galaxy_ai_phone_yet/images/images.zip
+samsung_s26_main1.jpg|https://img.global.news.samsung.com/global/wp-content/uploads/2026/02/26034330/Samsung-Mobile-Galaxy-Unpacked-2026-Galaxy-S26-Series-A-First-Look_main1.jpg
+samsung_s26_main2.jpg|https://img.global.news.samsung.com/global/wp-content/uploads/2026/02/26034345/Samsung-Mobile-Galaxy-Unpacked-2026-Galaxy-S26-Series-A-First-Look_main2.jpg
+samsung_s26_main3.jpg|https://img.global.news.samsung.com/global/wp-content/uploads/2026/02/26034417/Samsung-Mobile-Galaxy-Unpacked-2026-Galaxy-S26-Series-A-First-Look_main3.jpg
+samsung_s26_main5.jpg|https://img.global.news.samsung.com/global/wp-content/uploads/2026/02/26031606/Samsung-Mobile-Galaxy-Unpacked-2026-Galaxy-S26-Series-A-First-Look_main5.jpg
+samsung_privacy.mp4|https://img.global.news.samsung.com/global/wp-content/uploads/2026/02/26031524/Samsung-Mobile-Galaxy-Unpacked-2026-Galaxy-S26-Series-A-First-Look_main4.mp4
+samsung_night.mp4|https://img.global.news.samsung.com/global/wp-content/uploads/2026/02/26031825/Samsung-Mobile-Galaxy-Unpacked-2026-Galaxy-S26-Series-A-First-Look_main8-2.mp4

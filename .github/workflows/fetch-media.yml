@@ -69,7 +69,7 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           mkdir -p up
-          # images as they are (flat names); videos become 1080p previews so they can be looked at quickly
+          # images and videos as they are (flat names); only very large videos are shrunk to 1080p
           cd dl
           find . -type f | sort | while read -r f; do
             flat="$(echo "${f#./}" | tr '/ ' '__')"
@@ -77,11 +77,14 @@ jobs:
               *.jpg|*.jpeg|*.png|*.webp|*.gif)
                 if [ "$(stat -c %s "$f")" -lt 30000000 ]; then cp "$f" "../up/$flat"; fi ;;
               *.mp4|*.mov|*.m4v)
-                ffmpeg -y -loglevel error -i "$f" -vf "scale=-2:1080" -c:v libx264 -preset veryfast -crf 24 -pix_fmt yuv420p -an "../up/${flat%.*}_1080p.mp4" || echo "preview failed $f" ;;
+                if [ "$(stat -c %s "$f")" -lt 200000000 ]; then cp "$f" "../up/$flat";
+                else ffmpeg -y -loglevel error -i "$f" -vf "scale=-2:1080" -c:v libx264 -preset veryfast -crf 20 -pix_fmt yuv420p -an "../up/${flat%.*}_1080p.mp4" || echo "preview failed $f"; fi ;;
             esac
           done
           cd ..
           cp out/manifest.txt up/manifest.txt
+          # the usage notice Apple ships inside every zip
+          N=$(ls dl/*/LEGAL_NOTICE.rtf 2>/dev/null | head -n 1); [ -n "$N" ] && cp "$N" up/apple_LEGAL_NOTICE.rtf || true
           [ -f out/failed.txt ] && cp out/failed.txt up/failed.txt || true
           ls -la up
           TAG="media-${{ github.run_number }}-phones"
