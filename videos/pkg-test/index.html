@@ -55,7 +55,7 @@ const prog = (t, t0, d) => clamp((t - t0) / d, 0, 1);
 const LABELS = [
   { id: 'lid',        anchor: 'lid',        side: 'R', cls: '',  title: 'HEAT SPREADER',      sub: 'Pulls heat out of the chip', tIn: 1.95, tOut: 2.85, dy: -150 },
   { id: 'tim',        anchor: 'tim',        side: 'R', cls: '',  title: 'THERMAL PAD',        sub: 'Carries heat up to the lid', tIn: 2.20, tOut: 3.05, dy: 0 },
-  { id: 'hbm',        anchor: 'hbm',        side: 'R', cls: 'g', title: 'HBM MEMORY',         sub: 'Stacked memory layers',      tIn: 2.45, tOut: 99, dy: 20, park: { y: 640, from: 3.25 } },
+  { id: 'hbm',        anchor: 'hbm',        side: 'R', cls: 'g', title: 'HBM MEMORY',         sub: 'Stacked memory layers',      tIn: 2.45, tOut: 99, dy: 130, park: { y: 640, from: 3.25 } },
   { id: 'die',        anchor: 'die',        side: 'L', cls: 'g', title: 'COMPUTE DIE',        sub: 'Where the math happens',     tIn: 2.70, tOut: 99, dy: 10, park: { y: 640, from: 3.25 } },
   { id: 'interposer', anchor: 'interposer', side: 'L', cls: '',  title: 'SILICON INTERPOSER', sub: 'Wires memory to the die',    tIn: 2.95, tOut: 4.15, dy: 0 },
   { id: 'substrate',  anchor: 'substrate',  side: 'L', cls: '',  title: 'SUBSTRATE',          sub: 'Brings power and signals',   tIn: 3.20, tOut: 3.85, dy: 0 },
