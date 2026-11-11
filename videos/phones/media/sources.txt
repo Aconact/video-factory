@@ -1,0 +1,9 @@
+# name|url   (official press material: Apple Newsroom and Samsung Newsroom press kit)
+apple_2up.zip|https://www.apple.com/newsroom/images/2026/09/apple-debuts-iphone-18-pro-and-iphone-18-pro-max/article/Apple-iPhone-18-Pro-2up-260909.zip
+apple_colors.zip|https://www.apple.com/newsroom/images/2026/09/apple-debuts-iphone-18-pro-and-iphone-18-pro-max/article/Apple-iPhone-18-Pro-color-lineup-260909.zip
+apple_a20.zip|https://www.apple.com/newsroom/images/2026/09/apple-debuts-iphone-18-pro-and-iphone-18-pro-max/article/Apple-iPhone-18-Pro-A20-Pro-chip-260909.zip
+apple_vapor.zip|https://www.apple.com/newsroom/videos/2026/autoplay/09/apple-debuts-iphone-18-pro-and-iphone-18-pro-max/apple-iphone-18-pro-next-generation-vapor-chamber/downloads/Apple-iPhone-18-Pro-next-generation-vapor-chamber-260909.zip
+apple_camera.zip|https://www.apple.com/newsroom/videos/2026/autoplay/09/apple-debuts-iphone-18-pro-and-iphone-18-pro-max/apple-iphone-18-pro-camera-close-up/downloads/Apple-iPhone-18-Pro-camera-close-up-260909.zip
+apple_battery.zip|https://www.apple.com/newsroom/videos/2026/autoplay/09/apple-debuts-iphone-18-pro-and-iphone-18-pro-max/apple-iphone-18-pro-new-battery-designs/downloads/Apple-iPhone-18-Pro-new-battery-designs-260909.zip
+apple_island.zip|https://www.apple.com/newsroom/videos/2026/autoplay/09/apple-debuts-iphone-18-pro-and-iphone-18-pro-max/apple-iphone-18-pro-dynamic-island/downloads/Apple-iPhone-18-Pro-Dynamic-Island-260909.zip
+samsung_images.zip|https://snr-2019-presskits-production.s3.amazonaws.com/samsung_unveils_galaxy_s26_series_the_most_intuitive_galaxy_ai_phone_yet/images/images.zip

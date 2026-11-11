@@ -1,0 +1,88 @@
+name: fetch-media
+
+# Downloads official press material (Apple Newsroom, Samsung Newsroom press kit) listed in videos/phones/media/sources.txt,
+# describes every file, and keeps them in a DRAFT release (not public) for building the phones video.
+on:
+  push:
+    paths:
+      - "videos/phones/media/sources.txt"
+      - ".github/workflows/fetch-media.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: fetch-media
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Install tools
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y --no-install-recommends ffmpeg imagemagick unzip
+
+      - name: Download press material
+        run: |
+          mkdir -p dl out
+          UA='Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36'
+          while IFS='|' read -r name url; do
+            [ -z "$name" ] && continue
+            case "$name" in \#*) continue;; esac
+            echo "== $name"
+            if curl -fsSL --retry 3 --retry-delay 3 -A "$UA" -H 'Referer: https://www.apple.com/newsroom/' -o "dl/$name" "$url"; then
+              ls -la "dl/$name"
+            else
+              echo "FAILED $name $url" | tee -a out/failed.txt
+            fi
+          done < videos/phones/media/sources.txt
+          ls -la dl
+
+      - name: Unpack and describe
+        run: |
+          cd dl
+          for z in *.zip; do
+            [ -f "$z" ] || continue
+            mkdir -p "${z%.zip}"
+            unzip -o -q "$z" -d "${z%.zip}" || echo "unzip failed $z" >> ../out/failed.txt
+            rm -f "$z"
+          done
+          find . -type f | sort > ../out/files.txt
+          while read -r f; do
+            case "${f,,}" in
+              *.jpg|*.jpeg|*.png|*.webp|*.gif) echo "IMG $f $(identify -format '%wx%h %[channels] %b' "$f[0]" 2>/dev/null)" ;;
+              *.mp4|*.mov|*.m4v|*.webm) echo "VID $f $(ffprobe -v error -select_streams v:0 -show_entries stream=codec_name,width,height,r_frame_rate,duration -of csv=p=0 "$f" 2>/dev/null) $(stat -c %s "$f")" ;;
+              *) echo "OTHER $f $(stat -c %s "$f")" ;;
+            esac
+          done < ../out/files.txt | tee ../out/manifest.txt
+
+      - name: Publish draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          mkdir -p up
+          # images as they are (flat names); videos become 1080p previews so they can be looked at quickly
+          cd dl
+          find . -type f | sort | while read -r f; do
+            flat="$(echo "${f#./}" | tr '/ ' '__')"
+            case "${f,,}" in
+              *.jpg|*.jpeg|*.png|*.webp|*.gif)
+                if [ "$(stat -c %s "$f")" -lt 30000000 ]; then cp "$f" "../up/$flat"; fi ;;
+              *.mp4|*.mov|*.m4v)
+                ffmpeg -y -loglevel error -i "$f" -vf "scale=-2:1080" -c:v libx264 -preset veryfast -crf 24 -pix_fmt yuv420p -an "../up/${flat%.*}_1080p.mp4" || echo "preview failed $f" ;;
+            esac
+          done
+          cd ..
+          cp out/manifest.txt up/manifest.txt
+          [ -f out/failed.txt ] && cp out/failed.txt up/failed.txt || true
+          ls -la up
+          TAG="media-${{ github.run_number }}-phones"
+          gh release create "$TAG" up/* --draft --title "$TAG" --notes "Official press material for the phones video (draft, not public)."
