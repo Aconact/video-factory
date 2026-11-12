@@ -36,6 +36,7 @@ jobs:
       maxrate: ${{ steps.plan.outputs.maxrate }}
       media: ${{ steps.plan.outputs.media }}
       audio: ${{ steps.plan.outputs.audio }}
+      astart: ${{ steps.plan.outputs.astart }}
     steps:
       - uses: actions/checkout@v4
       - name: Plan
@@ -129,7 +130,7 @@ jobs:
           test "$EXPECT" = "$HAVE"
           for f in $(ls chunks/chunk_*.mp4 | sort); do echo "file '$PWD/$f'"; done > list.txt
           ffmpeg -y -loglevel error -f concat -safe 0 -i list.txt -c copy out/video_only.mp4
-          FRAMES=$(ffprobe -v error -select_streams v:0 -count_packets -show_entries stream=nb_read_packets -of csv=p=0 out/video_only.mp4)
+          FRAMES=$(ffprobe -v error -select_streams v:0 -count_packets -show_entries stream=nb_read_packets -of default=nw=1:nk=1 out/video_only.mp4 | head -n 1 | tr -d ', ')
           WANT=$(( ${{ needs.plan.outputs.last }} - ${{ needs.plan.outputs.first }} + 1 ))
           echo "frames: have $FRAMES, want $WANT"
           test "$FRAMES" = "$WANT"
@@ -137,12 +138,14 @@ jobs:
       - name: Add the sound, make the 1080p copy
         run: |
           NAME=iphone-18-pro-max-vs-galaxy-s26-ultra
+          SUF=""; [ "${{ needs.plan.outputs.full }}" = "true" ] || SUF="_part"
           if [ "${{ needs.plan.outputs.audio }}" = "true" ]; then
-            ffmpeg -y -loglevel error -i out/video_only.mp4 -i videos/phones/audio.m4a -map 0:v:0 -map 1:a:0 -c copy -shortest -movflags +faststart "out/${NAME}_4k.mp4"
-            ffmpeg -y -loglevel error -i "out/${NAME}_4k.mp4" -vf "scale=1920:1080:flags=lanczos" -c:v libx264 -preset medium -crf 18 -maxrate 10M -bufsize 20M -pix_fmt yuv420p \
-              -colorspace bt709 -color_primaries bt709 -color_trc bt709 -color_range tv -c:a copy -movflags +faststart "out/${NAME}_1080p.mp4"
+            # the sound track starts at the first frame of the range (0 for the full video)
+            ffmpeg -y -loglevel error -i out/video_only.mp4 -ss "${{ needs.plan.outputs.astart }}" -i videos/phones/audio.m4a -map 0:v:0 -map 1:a:0 -c copy -shortest -movflags +faststart "out/${NAME}_4k${SUF}.mp4"
+            ffmpeg -y -loglevel error -i "out/${NAME}_4k${SUF}.mp4" -vf "scale=1920:1080:flags=lanczos" -c:v libx264 -preset medium -crf 18 -maxrate 10M -bufsize 20M -pix_fmt yuv420p \
+              -colorspace bt709 -color_primaries bt709 -color_trc bt709 -color_range tv -c:a copy -movflags +faststart "out/${NAME}_1080p${SUF}.mp4"
           else
-            mv out/video_only.mp4 "out/${NAME}_4k_part.mp4"
+            mv out/video_only.mp4 "out/${NAME}_4k${SUF}.mp4"
           fi
           rm -f out/video_only.mp4
           ls -la out
@@ -156,7 +159,7 @@ jobs:
             echo "== format"; ffprobe -v error -show_entries format=duration,size,bit_rate -of default=nw=1 "$F"
             echo "== loudness"; ffmpeg -hide_banner -nostats -i "$F" -af ebur128=peak=true -f null - 2>&1 | tail -n 14
           } > check/report.txt 2>&1 || true
-          DUR=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$F")
+          DUR=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 "$F" | head -n 1 | tr -d ', ')
           if [ "${{ needs.plan.outputs.full }}" = "true" ]; then TIMES="3 12 30 62 85 100 125 158 190 209 232 273 300 330 360 385 410 445 500 540 565 590 598 603"; else TIMES=$(python3 -c "d=float('$DUR');print(' '.join('%.2f'%((i+.5)*d/8) for i in range(8)))"); fi
           for t in $TIMES; do ffmpeg -y -loglevel error -ss "$t" -i "$F" -frames:v 1 -q:v 3 "check/frame_$(printf %07.2f "$t").jpg" || true; done
           montage check/frame_*.jpg -resize 640x360 -tile 4x -geometry +4+4 -background '#222' check/sheet.jpg || true

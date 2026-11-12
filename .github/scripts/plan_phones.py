@@ -31,7 +31,8 @@ out = {
     "matrix": json.dumps({"include": include}),
     "count": len(include), "total": total, "first": first, "last": last, "full": str(full).lower(),
     "release": cfg.get("release", "draft"), "crf": cfg.get("crf", 17), "maxrate": cfg.get("maxrate", "20M"),
-    "media": cfg["media_release"], "audio": str(bool(cfg.get("audio", 1)) and full).lower(),
+    "media": cfg["media_release"], "audio": str(bool(cfg.get("audio", 1))).lower(),
+    "astart": "%.6f" % (first / 30.0),
 }
 for k, v in out.items():
     print(f"{k}={v}")
