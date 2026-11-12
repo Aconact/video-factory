@@ -29,7 +29,7 @@ for i in range(shards):
 full = first == 0 and last == total - 1
 out = {
     "matrix": json.dumps({"include": include}),
-    "total": total, "first": first, "last": last, "full": str(full).lower(),
+    "count": len(include), "total": total, "first": first, "last": last, "full": str(full).lower(),
     "release": cfg.get("release", "draft"), "crf": cfg.get("crf", 17), "maxrate": cfg.get("maxrate", "20M"),
     "media": cfg["media_release"], "audio": str(bool(cfg.get("audio", 1)) and full).lower(),
 }

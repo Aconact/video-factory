@@ -26,6 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.plan.outputs.matrix }}
+      count: ${{ steps.plan.outputs.count }}
       total: ${{ steps.plan.outputs.total }}
       first: ${{ steps.plan.outputs.first }}
       last: ${{ steps.plan.outputs.last }}
@@ -122,7 +123,7 @@ jobs:
 
       - name: Join the shards (no re-encoding)
         run: |
-          EXPECT=$(python3 -c "import json;print(len(json.loads('''${{ needs.plan.outputs.matrix }}''')['include']))")
+          EXPECT=${{ needs.plan.outputs.count }}
           HAVE=$(ls chunks/chunk_*.mp4 | wc -l)
           echo "shards: expected $EXPECT, have $HAVE"
           test "$EXPECT" = "$HAVE"
