@@ -1,10 +1,1 @@
-{
-  "from": 4530,
-  "to": 4829,
-  "shards": 2,
-  "release": "draft",
-  "crf": 17,
-  "maxrate": "20M",
-  "audio": 1,
-  "media_release": 442117152
-}
+{"from": 0, "to": -1, "shards": 20, "release": "public", "crf": 17, "maxrate": "20M", "audio": 1, "media_release": 442117152}
