@@ -1,0 +1,173 @@
+name: render-phones
+
+# Renders the phones comparison video (videos/phones) in 3840x2160 at 30 fps.
+# The frame range is split into shards; every shard is one H.264 file; the files are joined without re-encoding.
+# Settings live in videos/phones/render.json (pushing a change to it starts a run) or in the manual run inputs.
+on:
+  push:
+    paths:
+      - "videos/phones/render.json"
+  workflow_dispatch:
+    inputs:
+      from: { description: "first frame", required: false }
+      to: { description: "last frame (-1 = end)", required: false }
+      shards: { description: "number of shards", required: false }
+      release: { description: "draft or public", required: false }
+
+permissions:
+  contents: write
+
+concurrency:
+  group: render-phones
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      total: ${{ steps.plan.outputs.total }}
+      first: ${{ steps.plan.outputs.first }}
+      last: ${{ steps.plan.outputs.last }}
+      full: ${{ steps.plan.outputs.full }}
+      release: ${{ steps.plan.outputs.release }}
+      crf: ${{ steps.plan.outputs.crf }}
+      maxrate: ${{ steps.plan.outputs.maxrate }}
+      media: ${{ steps.plan.outputs.media }}
+      audio: ${{ steps.plan.outputs.audio }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Plan
+        id: plan
+        env:
+          IN_FROM: ${{ github.event.inputs.from }}
+          IN_TO: ${{ github.event.inputs.to }}
+          IN_SHARDS: ${{ github.event.inputs.shards }}
+          IN_RELEASE: ${{ github.event.inputs.release }}
+        run: python3 .github/scripts/plan_phones.py | tee -a "$GITHUB_OUTPUT"
+
+  render:
+    needs: plan
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Playwright (Chromium) and ffmpeg
+        run: |
+          npm install --no-save --no-package-lock playwright@1.63.0
+          npx playwright install --with-deps chromium
+          command -v ffmpeg >/dev/null || { sudo apt-get update -y && sudo apt-get install -y --no-install-recommends ffmpeg; }
+          ffmpeg -hide_banner -version | head -n 1
+
+      - name: Get the press media (private draft release) and prepare it
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p media_src
+          gh api "repos/$GITHUB_REPOSITORY/releases/${{ needs.plan.outputs.media }}" --jq '.assets[] | "\(.id) \(.name)"' | while read -r id name; do
+            gh api -H "Accept: application/octet-stream" "repos/$GITHUB_REPOSITORY/releases/assets/$id" > "media_src/$name"
+          done
+          ls media_src | wc -l
+          tools/prep_media.sh media_src videos/phones/pack
+
+      - name: Render frames ${{ matrix.from }} to ${{ matrix.to }}
+        run: |
+          mkdir -p chunks
+          OUT=chunks/chunk_$(printf %03d ${{ matrix.shard }}).mp4
+          for attempt in 1 2 3; do
+            node tools/render_video.js --dir videos/phones --fonts videos/fonts --media videos/phones/pack \
+              --from ${{ matrix.from }} --to ${{ matrix.to }} --workers 3 \
+              --crf ${{ needs.plan.outputs.crf }} --maxrate ${{ needs.plan.outputs.maxrate }} --out "$OUT" && break
+            echo "attempt $attempt failed"; rm -f "$OUT" "${OUT%.mp4}.part.mp4"; sleep 5
+          done
+          test -f "$OUT"
+          ls -la chunks
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: chunk-${{ matrix.shard }}
+          path: chunks/*.mp4
+          retention-days: 2
+          if-no-files-found: error
+
+  assemble:
+    needs: [plan, render]
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: chunk-*
+          merge-multiple: true
+          path: chunks
+
+      - name: Tools
+        run: |
+          command -v ffmpeg >/dev/null || { sudo apt-get update -y; sudo apt-get install -y --no-install-recommends ffmpeg; }
+          sudo apt-get install -y --no-install-recommends imagemagick
+          mkdir -p out check
+
+      - name: Join the shards (no re-encoding)
+        run: |
+          EXPECT=$(python3 -c "import json;print(len(json.loads('''${{ needs.plan.outputs.matrix }}''')['include']))")
+          HAVE=$(ls chunks/chunk_*.mp4 | wc -l)
+          echo "shards: expected $EXPECT, have $HAVE"
+          test "$EXPECT" = "$HAVE"
+          for f in $(ls chunks/chunk_*.mp4 | sort); do echo "file '$PWD/$f'"; done > list.txt
+          ffmpeg -y -loglevel error -f concat -safe 0 -i list.txt -c copy out/video_only.mp4
+          FRAMES=$(ffprobe -v error -select_streams v:0 -count_packets -show_entries stream=nb_read_packets -of csv=p=0 out/video_only.mp4)
+          WANT=$(( ${{ needs.plan.outputs.last }} - ${{ needs.plan.outputs.first }} + 1 ))
+          echo "frames: have $FRAMES, want $WANT"
+          test "$FRAMES" = "$WANT"
+
+      - name: Add the sound, make the 1080p copy
+        run: |
+          NAME=iphone-18-pro-max-vs-galaxy-s26-ultra
+          if [ "${{ needs.plan.outputs.audio }}" = "true" ]; then
+            ffmpeg -y -loglevel error -i out/video_only.mp4 -i videos/phones/audio.m4a -map 0:v:0 -map 1:a:0 -c copy -shortest -movflags +faststart "out/${NAME}_4k.mp4"
+            ffmpeg -y -loglevel error -i "out/${NAME}_4k.mp4" -vf "scale=1920:1080:flags=lanczos" -c:v libx264 -preset medium -crf 18 -maxrate 10M -bufsize 20M -pix_fmt yuv420p \
+              -colorspace bt709 -color_primaries bt709 -color_trc bt709 -color_range tv -c:a copy -movflags +faststart "out/${NAME}_1080p.mp4"
+          else
+            mv out/video_only.mp4 "out/${NAME}_4k_part.mp4"
+          fi
+          rm -f out/video_only.mp4
+          ls -la out
+
+      - name: Checks (report, sample frames)
+        run: |
+          F=$(ls out/*_4k*.mp4 | head -n 1)
+          {
+            echo "== file"; ls -la out
+            echo "== streams"; ffprobe -v error -show_entries stream=codec_name,profile,width,height,r_frame_rate,pix_fmt,color_space,color_range,bit_rate,duration,start_time,nb_frames -of default=nw=1 "$F"
+            echo "== format"; ffprobe -v error -show_entries format=duration,size,bit_rate -of default=nw=1 "$F"
+            echo "== loudness"; ffmpeg -hide_banner -nostats -i "$F" -af ebur128=peak=true -f null - 2>&1 | tail -n 14
+          } > check/report.txt 2>&1 || true
+          DUR=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$F")
+          if [ "${{ needs.plan.outputs.full }}" = "true" ]; then TIMES="3 12 30 62 85 100 125 158 190 209 232 273 300 330 360 385 410 445 500 540 565 590 598 603"; else TIMES=$(python3 -c "d=float('$DUR');print(' '.join('%.2f'%((i+.5)*d/8) for i in range(8)))"); fi
+          for t in $TIMES; do ffmpeg -y -loglevel error -ss "$t" -i "$F" -frames:v 1 -q:v 3 "check/frame_$(printf %07.2f "$t").jpg" || true; done
+          montage check/frame_*.jpg -resize 640x360 -tile 4x -geometry +4+4 -background '#222' check/sheet.jpg || true
+          cat check/report.txt | head -n 60
+
+      - name: Publish
+        run: |
+          TAG="phones-${{ github.run_number }}"
+          # the check files go to a private draft release; the video goes to the release asked for
+          gh release create "phones-check-${{ github.run_number }}" --draft --title "phones check ${{ github.run_number }}" --notes "frames and report" check/*
+          if [ "${{ needs.plan.outputs.full }}" = "true" ] && [ "${{ needs.plan.outputs.release }}" = "public" ]; then
+            gh release create "$TAG" --title "iPhone 18 Pro Max vs Galaxy S26 Ultra (4K)" --notes-file videos/phones/RELEASE_NOTES.md out/*.mp4
+          else
+            gh release create "phones-test-${{ github.run_number }}" --draft --title "phones test ${{ github.run_number }}" --notes "draft" out/*.mp4
+          fi

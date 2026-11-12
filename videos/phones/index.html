@@ -1,0 +1,68 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>phones</title>
+<style>
+@font-face { font-family: "InterV"; src: url("http://app.local/fonts/Inter.ttf"); font-weight: 100 900; }
+@font-face { font-family: "JBM"; src: url("http://app.local/fonts/JetBrainsMono.ttf"); font-weight: 100 800; }
+:root { --bg:#04090B; --ink:#F2FBFF; --mut:#8FA7AE; --dim:#5B7078; --c1:#00F5FF; --c2:#00FF87; --line:rgba(255,255,255,.12); --panel:rgba(255,255,255,.05); --warn:#FFB547; --bad:#FF6B6B; }
+html, body { margin:0; padding:0; background:#04090B; }
+#stage { position:relative; width:1920px; height:1080px; overflow:hidden; font-family:InterV, sans-serif; color:var(--ink); background:var(--bg); }
+.abs { position:absolute; left:0; top:0; width:1920px; height:1080px; }
+.mono { font-family:JBM, monospace; }
+
+/* ---------- background ---------- */
+#bg { background:#04090B; }
+#orb1 { position:absolute; left:-260px; top:-300px; width:1300px; height:1100px; background:radial-gradient(closest-side, rgba(0,245,255,.13), rgba(0,245,255,0)); will-change:transform; }
+#orb2 { position:absolute; left:1000px; top:380px; width:1300px; height:1100px; background:radial-gradient(closest-side, rgba(0,255,135,.11), rgba(0,255,135,0)); will-change:transform; }
+#grid { background-image:linear-gradient(rgba(255,255,255,.028) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.028) 1px, transparent 1px); background-size:80px 80px; }
+#noise { position:absolute; left:0; top:0; width:1920px; height:1080px; }
+
+/* ---------- HUD ---------- */
+#hud { font-family:JBM, monospace; font-weight:600; font-size:23px; letter-spacing:.16em; opacity:0; }
+#hud .l { position:absolute; left:80px; top:30px; display:flex; align-items:center; gap:14px; color:rgba(242,251,255,.78); }
+#hud .dot { width:13px; height:13px; border-radius:50%; background:var(--c2); }
+#hud .m { position:absolute; left:0; width:1920px; top:30px; text-align:center; display:flex; justify-content:center; gap:44px; font-weight:700; letter-spacing:.06em; font-size:23px; }
+#hud .m b { display:inline-flex; align-items:center; gap:12px; font-weight:700; }
+#hud .m i { width:14px; height:14px; border-radius:4px; display:inline-block; }
+#hud .r { position:absolute; right:80px; top:30px; color:var(--mut); text-align:right; }
+#progWrap { position:absolute; left:0; top:0; width:1920px; height:5px; background:rgba(255,255,255,.06); }
+#prog { position:absolute; left:0; top:0; width:1920px; height:5px; transform-origin:0 50%; transform:scaleX(0); background:linear-gradient(90deg,#00F5FF,#00FF87); }
+
+/* ---------- shared pieces ---------- */
+.sc { overflow:hidden; }
+.kick { position:absolute; left:80px; top:104px; font:600 24px JBM, monospace; letter-spacing:.2em; text-transform:uppercase; color:var(--mut); }
+.h1 { position:absolute; left:80px; top:142px; width:1760px; font-weight:800; font-size:62px; line-height:1.08; letter-spacing:-.02em; }
+.c1 { color:var(--c1); } .c2 { color:var(--c2); } .mut { color:var(--mut); }
+.panel { position:absolute; border-radius:26px; background:var(--panel); border:1.5px solid var(--line); box-sizing:border-box; }
+.src { position:absolute; left:80px; top:918px; font:600 21px JBM, monospace; letter-spacing:.06em; color:var(--dim); }
+.tag { display:inline-block; font:700 20px JBM, monospace; letter-spacing:.14em; padding:5px 12px; border-radius:8px; border:1.5px solid; text-transform:uppercase; }
+
+/* ---------- captions ---------- */
+#caps { position:absolute; left:0; top:966px; width:1920px; height:74px; }
+.cap { position:absolute; left:50%; top:0; transform:translateX(-50%); display:none; align-items:center; white-space:nowrap; padding:8px 26px 10px; border-radius:22px; background:rgba(3,8,10,.74); border:1.5px solid rgba(255,255,255,.12); font-weight:800; font-size:44px; line-height:1.15; color:rgba(242,251,255,.5); }
+.cw { display:inline-block; margin:0 7px; padding:0 4px; border-radius:9px; }
+.cw.done { color:rgba(242,251,255,.95); }
+.cw.cur { color:#fff; background:rgba(255,255,255,.17); }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="bg" class="abs"><div id="orb1"></div><div id="orb2"></div><div id="grid" class="abs"></div><canvas id="noise" width="3840" height="2160"></canvas></div>
+  <div id="scenes" class="abs"></div>
+  <div id="hud" class="abs">
+    <div class="l"><span class="dot"></span>TECHPULSEREPORT</div>
+    <div class="m"><b style="color:var(--c1)"><i style="background:var(--c1)"></i>iPhone 18 Pro Max</b><b style="color:var(--c2)"><i style="background:var(--c2)"></i>Galaxy S26 Ultra</b></div>
+    <div class="r" id="hudR"></div>
+  </div>
+  <div id="progWrap"><div id="prog"></div></div>
+  <div id="caps"></div>
+</div>
+<script src="http://app.local/engine.js"></script>
+<script src="http://app.local/scenes1.js"></script>
+<script src="http://app.local/scenes2.js"></script>
+<script src="http://app.local/scenes3.js"></script>
+<script>V.start();</script>
+</body>
+</html>

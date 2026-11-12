@@ -82,3 +82,8 @@ Checked: 11 Nov 2026. Prices are US launch prices.
 - iPhone wireless charging 35 W (Tom's Guide text) vs 25 W (Apple): Apple's 25 W used.
 - Apple battery/video-playback claims (43 h UK page vs 45 h US): not shown.
 - Update years for iPhone: sources disagree; stated as "not published", BGR estimate only.
+
+## Press media used in the video (shown unchanged, credited on screen)
+- Apple Newsroom press images (colours line-up, 2-up photo) and press videos (vapor chamber, camera close-up); Apple's notice in the download says: personal or editorial use, non-commercial, images/video/audio cannot be altered.
+- Samsung Newsroom press kit image (Galaxy S26 Ultra family, Ultra with Buds) and the Privacy Display press video from img.global.news.samsung.com; Samsung's site terms limit use to personal, non-commercial purposes.
+- The originals are not stored in the repository; they are kept in a private draft release and prepared by tools/prep_media.sh.
