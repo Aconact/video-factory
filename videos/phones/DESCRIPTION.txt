@@ -1,0 +1,60 @@
+TITLE
+iPhone 18 Pro Max vs Galaxy S26 Ultra: Design, Performance, Cameras, Battery and Problems
+
+DESCRIPTION
+A 10-minute comparison of the iPhone 18 Pro Max and the Galaxy S26 Ultra: design, screen, performance, cameras, battery and charging, software, price, the problems of each phone, and a verdict.
+
+Every number comes from official spec pages or published reviews and tests (links below). What the makers claim, what labs measured and what owners report are kept apart and labelled. Owner reports are reports, not facts. Prices are US launch prices; your local price and carrier deals will differ. Facts checked on November 11, 2026. The iPhone 18 Pro Max has been on sale for less than two months, so its long-term record is not known yet. Foldables are not compared.
+
+CHAPTERS
+0:00 Intro: which one is better?
+0:17 The two phones
+0:52 How I compared them
+1:16 Design and build
+2:02 Screen
+2:48 Performance
+4:01 Cameras
+5:10 Battery and charging
+5:54 Software and updates
+6:32 Price
+7:02 iPhone problems
+7:52 Galaxy problems
+8:47 Scoreboard
+9:14 Verdict
+
+SOURCES
+Official
+- Apple, iPhone 18 Pro and Pro Max specs: https://www.apple.com/uk/iphone-18-pro/specs/
+- Samsung Newsroom, Galaxy S26 series: https://news.samsung.com/us/samsung-unveils-galaxy-s26-series/
+
+Reviews and head-to-head tests
+- Tom's Guide, iPhone 18 Pro and Pro Max review: https://www.tomsguide.com/phones/iphones/iphone-18-pro-and-pro-max-review
+- Tom's Guide, iPhone 18 Pro Max vs Galaxy S26 Ultra face-off: https://www.tomsguide.com/phones/i-put-the-iphone-18-pro-max-vs-galaxy-s26-ultra
+- TechRadar, iPhone 18 Pro Max vs Galaxy S26 Ultra: https://techradar.com/phones/samsung-galaxy-phones/iphone-18-pro-max-vs-samsung-galaxy-s26-ultra
+- TechRadar, Galaxy S26 Ultra review: https://www.techradar.com/phones/samsung-galaxy-phones/samsung-galaxy-s26-ultra-review
+- Android Central, iPhone 18 Pro Max vs Galaxy S26 Ultra: https://www.androidcentral.com/phones/apple-iphone-18-pro-max-vs-samsung-galaxy-s26-ultra
+- 9to5Mac, iPhone 18 Pro review: https://9to5mac.com/iphone-18-pro-review/
+- Notebookcheck, iPhone 18 Pro Max: https://www.notebookcheck.net/Apple-iPhone-18-Pro-Max-Reviews-and-Specs.1401539.0.html
+- GSMArena, Galaxy S26 Ultra review: https://m.gsmarena.com/samsung_galaxy_s26_ultra-review-2939.php
+- Engadget, Galaxy S26 Ultra review: https://www.engadget.com/mobile/smartphones/samsung-galaxy-s26-ultra-review-the-stealth-upgrade-140000629.html
+- BGR, iPhone 18 Pro software support: https://www.bgr.com/2271417/how-long-iphone-18-pro-duo-software-support/
+
+Camera tests
+- DXOMARK, iPhone 18 Pro: https://dxomark.com/apple-iphone-18-pro-camera-test
+- DXOMARK, Galaxy S26 Ultra: https://www.dxomark.com/samsung-galaxy-s26-ultra-camera-test/
+
+Problems: iPhone
+- Macworld, Apple confirms the cellular issue: https://www.macworld.com/article/3250214/apple-confirms-iphone-cellular-issue-admits-affected-units-cant-be-fixed.html
+- Macworld, owner reports of freezes and restarts: https://www.macworld.com/article/3240287/iphone-18-pro-owners-report-two-serious-bugs-causing-freezes-and-restarts.html
+- Tech Advisor, audio crackle reports: https://www.techadvisor.com/article/3248893/iphone-18-pro-audio-crackle-bug-reported.html
+
+Problems: Galaxy
+- Tom's Guide, Privacy Display complaints: https://www.tomsguide.com/phones/samsung-phones/the-galaxy-s26-ultras-headline-feature-is-turning-out-to-be-its-biggest-complaint-owners-angry-over-fuzzy-text-headaches-and-eye-strain
+- Android Central, red screen stain: https://androidcentral.com/phones/samsung-galaxy/galaxy-s26-ultra-suffers-an-unusual-red-screen-issue-samsung-says-it-can-fix-it
+- Android Central, blurry 3x telephoto: https://www.androidcentral.com/phones/samsung-galaxy/fear-not-samsung-is-investigating-the-galaxy-s26-ultras-blurry-camera
+- Android Authority, Galaxy S26 problems: https://www.androidauthority.com/samsung-galaxy-s26-problems-3651083
+- BGR, One UI 9 update reports: https://www.bgr.com/2300250/samsung-galaxy-users-report-battery-issue-after-one-ui-9-update/
+
+CREDITS
+Photos and video clips of the phones: Apple Newsroom and Samsung Newsroom (official press material, shown unchanged).
+Voice-over: synthetic voice (text-to-speech). Music and sound effects: synthesised for this video.
